@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Brand — extracted from eazybase.co.uk logo + theme */
+  --color-brand-50: #f7fbe8;
+  --color-brand-100: #ecf5c8;
+  --color-brand-200: #dcec96;
+  --color-brand-300: #c5df5b;
+  --color-brand-400: #adcf2f;
+  --color-brand-500: #96c11f; /* logo green — primary CTA */
+  --color-brand-600: #86ad1c;
+  --color-brand-700: #648414;
+  --color-brand-800: #4f6815;
+  --color-brand-900: #435816;
+
+  --color-ink-50: #f6f7f4; /* warm section grey, slight green cast */
+  --color-ink-100: #e8eae4;
+  --color-ink-200: #d3d6cd;
+  --color-ink-300: #b0b4a9;
+  --color-ink-400: #8a8e83;
+  --color-ink-500: #6d7167;
+  --color-ink-600: #58595b; /* logo grey */
+  --color-ink-700: #444546;
+  --color-ink-800: #333333; /* body ink */
+  --color-ink-900: #2b2b2b; /* dark panels */
+  --color-ink-950: #1e1f1d;
+
+  --font-display: var(--font-montserrat), 'Montserrat', system-ui, sans-serif;
+  --font-body: var(--font-open-sans), 'Open Sans', system-ui, sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-white font-body text-ink-800;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--color-brand-200);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@layer components {
+  /* Angled modular-block accent — echoes the logo's tilted blocks */
+  .eb-block-accent {
+    @apply inline-block h-3 w-5 bg-brand-500;
+    transform: skewX(-18deg);
+  }
+
+  .eb-container {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+
+  .eb-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3.5 font-display text-sm font-semibold tracking-wide uppercase transition-colors duration-200;
+  }
+
+  .eb-btn-primary {
+    @apply eb-btn bg-brand-500 text-white hover:bg-brand-600;
+  }
+
+  .eb-btn-dark {
+    @apply eb-btn bg-ink-900 text-white hover:bg-ink-800;
+  }
+
+  .eb-btn-outline {
+    @apply eb-btn border-2 border-ink-900 text-ink-900 hover:bg-ink-900 hover:text-white;
+  }
+}
