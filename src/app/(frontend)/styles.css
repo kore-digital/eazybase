@@ -73,19 +73,22 @@
     @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
   }
 
-  .eb-btn {
+  .eb-btn,
+  .eb-btn-primary,
+  .eb-btn-dark,
+  .eb-btn-outline {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3.5 font-display text-sm font-semibold tracking-wide uppercase transition-colors duration-200;
   }
 
   .eb-btn-primary {
-    @apply eb-btn bg-brand-500 text-white hover:bg-brand-600;
+    @apply bg-brand-500 text-white hover:bg-brand-600;
   }
 
   .eb-btn-dark {
-    @apply eb-btn bg-ink-900 text-white hover:bg-ink-800;
+    @apply bg-ink-900 text-white hover:bg-ink-800;
   }
 
   .eb-btn-outline {
-    @apply eb-btn border-2 border-ink-900 text-ink-900 hover:bg-ink-900 hover:text-white;
+    @apply border-2 border-ink-900 text-ink-900 hover:bg-ink-900 hover:text-white;
   }
 }
