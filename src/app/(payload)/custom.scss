@@ -1,0 +1,13 @@
+/* Brand the primary buttons brand-green */
+.btn--style-primary {
+  background: #96c11f;
+  border-color: #96c11f;
+  color: #1e1f1d;
+}
+
+/* Hide the stock dashboard content; our custom dashboard (Task 4) renders
+   above it via beforeDashboard. Scoped to the dashboard view only. */
+.dashboard .dashboard__group,
+.dashboard > .dashboard__label {
+  display: none;
+}
