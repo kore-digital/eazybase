@@ -5,6 +5,7 @@ import React from 'react'
 import { EditorOverlay } from '@/components/editor/EditorOverlay'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import { SiteContactProvider } from '@/components/layout/SiteContactProvider'
 import { SmoothScroll } from '@/components/layout/SmoothScroll'
 import { StickyMobileCTA } from '@/components/layout/StickyMobileCTA'
 import { WhatsAppFloat } from '@/components/layout/WhatsAppFloat'
@@ -66,18 +67,20 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
       <body>
         {/* Site-wide Lenis smooth scrolling (no-op under prefers-reduced-motion) */}
         <SmoothScroll />
-        <Header phone={settings?.phone} navItems={navigation?.mainNav} />
-        <main>{children}</main>
-        <Footer
-          phone={settings?.phone}
-          whatsappNumber={settings?.whatsappNumber}
-          email={settings?.email}
-          tagline={settings?.tagline}
-          socials={settings?.socials}
-          navItems={navigation?.footerNav}
-        />
-        <StickyMobileCTA />
-        <WhatsAppFloat />
+        <SiteContactProvider phone={settings?.phone} whatsappNumber={settings?.whatsappNumber}>
+          <Header phone={settings?.phone} navItems={navigation?.mainNav} />
+          <main>{children}</main>
+          <Footer
+            phone={settings?.phone}
+            whatsappNumber={settings?.whatsappNumber}
+            email={settings?.email}
+            tagline={settings?.tagline}
+            socials={settings?.socials}
+            navItems={navigation?.footerNav}
+          />
+          <StickyMobileCTA />
+          <WhatsAppFloat />
+        </SiteContactProvider>
         <EditorOverlay />
       </body>
     </html>

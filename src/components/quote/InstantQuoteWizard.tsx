@@ -17,8 +17,8 @@ import {
 } from '@/components/quote/pricing'
 import { SuccessPanel } from '@/components/quote/SuccessPanel'
 import { TypeIcon } from '@/components/quote/TypeIcon'
-import { SITE } from '@/lib/site'
-import { formatPhone, telHref } from '@/lib/format'
+import { useSiteContact } from '@/components/layout/SiteContactProvider'
+import { formatPhone } from '@/lib/format'
 
 /**
  * The 3-step instant-quote estimator (brand-new build — the old
@@ -125,6 +125,7 @@ function ProgressDots({ step }: { step: Step }) {
 
 export function InstantQuoteWizard() {
   const reducedMotion = useReducedMotion()
+  const { phone, phoneHref, whatsappHref } = useSiteContact()
 
   const [step, setStep] = useState<Step>(1)
   const [direction, setDirection] = useState<1 | -1>(1)
@@ -607,11 +608,11 @@ export function InstantQuoteWizard() {
                   Prefer to talk it through?
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  <a href={telHref(SITE.phone)} className="eb-btn-dark px-5 py-2.5 text-xs">
-                    Call {formatPhone(SITE.phone)}
+                  <a href={phoneHref} className="eb-btn-dark px-5 py-2.5 text-xs">
+                    Call {formatPhone(phone)}
                   </a>
                   <a
-                    href={SITE.whatsappHref}
+                    href={whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="eb-btn-outline px-5 py-2.5 text-xs"

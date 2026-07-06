@@ -1,5 +1,8 @@
+import { getSiteSettings } from '@/lib/data'
+import { formatPhone, telHref, waHref } from '@/lib/format'
 import { SITE } from '@/lib/site'
-import { formatPhone, telHref } from '@/lib/format'
+
+const WA_TEXT = "Hi EazyBase, I'd like to talk about a modular extension."
 
 /**
  * Side column for /get-a-quote: why-EazyBase bullets, the award line, and
@@ -15,7 +18,13 @@ const WHY_EAZYBASE = [
   'Free survey and a no-obligation quotation',
 ]
 
-export function QuoteAside() {
+export async function QuoteAside() {
+  const settings = await getSiteSettings()
+  const phone = settings?.phone?.trim() || SITE.phone
+  const whatsappHref = settings?.whatsappNumber?.trim()
+    ? waHref(settings.whatsappNumber, WA_TEXT)
+    : SITE.whatsappHref
+
   return (
     <aside className="space-y-6" aria-label="Why choose EazyBase and other ways to get in touch">
       {/* Why EazyBase */}
@@ -39,7 +48,7 @@ export function QuoteAside() {
 
       {/* Phone card */}
       <a
-        href={telHref(SITE.phone)}
+        href={telHref(phone)}
         className="group block rounded-xl border border-ink-100 bg-white p-6 transition-colors hover:border-brand-300"
       >
         <div className="flex items-center gap-4">
@@ -62,7 +71,7 @@ export function QuoteAside() {
               Prefer to talk it through?
             </p>
             <p className="mt-0.5 font-display text-lg font-semibold text-brand-600 group-hover:text-brand-700">
-              {formatPhone(SITE.phone)}
+              {formatPhone(phone)}
             </p>
             <p className="mt-0.5 text-xs text-ink-400">Seven days a week</p>
           </div>
@@ -71,7 +80,7 @@ export function QuoteAside() {
 
       {/* WhatsApp card */}
       <a
-        href={SITE.whatsappHref}
+        href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
         className="group block rounded-xl border border-ink-100 bg-white p-6 transition-colors hover:border-brand-300"

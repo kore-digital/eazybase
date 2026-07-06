@@ -3,7 +3,8 @@
 import { motion } from 'motion/react'
 
 import { useReducedMotionSafe } from '@/components/ui/useReducedMotionSafe'
-import { SITE } from '@/lib/site'
+
+import { useSiteContact } from './SiteContactProvider'
 
 /**
  * Floating WhatsApp button, bottom-right, DESKTOP ONLY (mobile has the
@@ -15,6 +16,7 @@ export function WhatsAppFloat() {
   // Hydration-safe: false on SSR + first client render, flips post-mount
   // (the pulse ring span must exist in the first client tree to hydrate).
   const reducedMotion = useReducedMotionSafe()
+  const { whatsappHref } = useSiteContact()
 
   return (
     <div className="fixed right-6 bottom-6 z-40 hidden md:block">
@@ -36,7 +38,7 @@ export function WhatsAppFloat() {
       ) : null}
 
       <motion.a
-        href={SITE.whatsappHref}
+        href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat with EazyBase on WhatsApp"

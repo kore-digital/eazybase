@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { SITE } from '@/lib/site'
-import { telHref } from '@/lib/format'
+
+import { useSiteContact } from './SiteContactProvider'
 
 /**
  * Fixed bottom conversion bar, mobile only. Three equal segments:
@@ -16,6 +16,7 @@ import { telHref } from '@/lib/format'
 export function StickyMobileCTA() {
   const [hidden, setHidden] = useState(false)
   const pathname = usePathname()
+  const { phoneHref, whatsappHref } = useSiteContact()
 
   // Re-query on every route change — this component lives in the layout, so
   // a mount-only lookup would miss quote forms on pages navigated to client-side.
@@ -44,7 +45,7 @@ export function StickyMobileCTA() {
     >
       <div className="grid grid-cols-3 border-t border-ink-100 bg-white shadow-[0_-4px_16px_rgba(30,31,29,0.12)]">
         <a
-          href={telHref(SITE.phone)}
+          href={phoneHref}
           className="flex items-center justify-center gap-1.5 py-3.5 font-display text-xs font-semibold tracking-wide text-ink-900 uppercase"
         >
           <svg
@@ -62,7 +63,7 @@ export function StickyMobileCTA() {
           Call
         </a>
         <a
-          href={SITE.whatsappHref}
+          href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-1.5 bg-brand-500 py-3.5 font-display text-xs font-bold tracking-wide text-ink-950 uppercase"

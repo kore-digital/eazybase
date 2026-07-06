@@ -2,8 +2,8 @@
 
 import { motion, useReducedMotion } from 'motion/react'
 
-import { SITE } from '@/lib/site'
-import { formatPhone, telHref } from '@/lib/format'
+import { useSiteContact } from '@/components/layout/SiteContactProvider'
+import { formatPhone } from '@/lib/format'
 
 /**
  * Warm confirmation panel shown after a successful quote submission
@@ -12,6 +12,7 @@ import { formatPhone, telHref } from '@/lib/format'
  */
 export function SuccessPanel({ heading = 'Thank you — we’ve got your details' }: { heading?: string }) {
   const reducedMotion = useReducedMotion()
+  const { phone, phoneHref, whatsappHref } = useSiteContact()
 
   return (
     <div
@@ -55,11 +56,11 @@ export function SuccessPanel({ heading = 'Thank you — we’ve got your details
 
       <p className="mt-6 text-sm text-ink-500">Can’t wait? We’re happy to talk now.</p>
       <div className="mt-3 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href={telHref(SITE.phone)} className="eb-btn-dark">
-          Call {formatPhone(SITE.phone)}
+        <a href={phoneHref} className="eb-btn-dark">
+          Call {formatPhone(phone)}
         </a>
         <a
-          href={SITE.whatsappHref}
+          href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
           className="eb-btn-outline"

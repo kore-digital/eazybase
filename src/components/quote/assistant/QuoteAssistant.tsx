@@ -15,8 +15,8 @@ import {
 } from '@/components/quote/pricing'
 import { FAQ_CHIPS, GREETING } from '@/components/quote/assistant/script'
 import { useReducedMotionSafe } from '@/components/ui/useReducedMotionSafe'
-import { formatPhone, telHref } from '@/lib/format'
-import { SITE } from '@/lib/site'
+import { useSiteContact } from '@/components/layout/SiteContactProvider'
+import { formatPhone } from '@/lib/format'
 
 /**
  * Conversational quote capture ("Eazy"). A friendly chat that walks through
@@ -666,6 +666,7 @@ function ContactInput({
 }
 
 function ResultDock({ submitState }: { submitState: 'idle' | 'sending' | 'done' | 'error' }) {
+  const { phone, phoneHref, whatsappHref } = useSiteContact()
   if (submitState === 'sending' || submitState === 'idle') {
     return (
       <p className="py-1 text-center text-sm text-ink-500">Sending your details…</p>
@@ -675,15 +676,15 @@ function ResultDock({ submitState }: { submitState: 'idle' | 'sending' | 'done' 
   return (
     <div className="flex flex-col gap-2 sm:flex-row">
       <a
-        href={SITE.whatsappHref}
+        href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
         className="eb-btn flex-1 bg-[#25D366] text-ink-950 hover:brightness-95"
       >
         Chat on WhatsApp
       </a>
-      <a href={telHref(SITE.phone)} className="eb-btn-dark flex-1">
-        Call {formatPhone(SITE.phone)}
+      <a href={phoneHref} className="eb-btn-dark flex-1">
+        Call {formatPhone(phone)}
       </a>
     </div>
   )

@@ -11,7 +11,7 @@ import { CTABand } from '@/components/ui/CTABand'
 import { QuoteCTA } from '@/components/ui/QuoteCTA'
 import { Reveal } from '@/components/ui/Reveal'
 import { SectionHeading } from '@/components/ui/SectionHeading'
-import { getAllAreas, getArea, getGalleryItems, getTestimonials } from '@/lib/data'
+import { getAllAreas, getArea, getGalleryItems, getSiteSettings, getTestimonials } from '@/lib/data'
 import { formatPhone, telHref, waHref } from '@/lib/format'
 import { faqPage, jsonLdScript, localBusinessService } from '@/lib/jsonld'
 import { ORDER_STEPS, SITE } from '@/lib/site'
@@ -55,7 +55,13 @@ export default async function AreaPage({ params }: { params: Params }) {
   const area = await getArea(slug)
   if (!area) notFound()
 
-  const [galleryItems, testimonials] = await Promise.all([getGalleryItems(), getTestimonials()])
+  const [galleryItems, testimonials, settings] = await Promise.all([
+    getGalleryItems(),
+    getTestimonials(),
+    getSiteSettings(),
+  ])
+  const phone = settings?.phone?.trim() || SITE.phone
+  const whatsappNumber = settings?.whatsappNumber?.trim() || SITE.whatsappNumber
   const seed = hashSlug(area.slug)
 
   // Rotate through seeded gallery media (exteriors first, then interiors),
@@ -90,7 +96,7 @@ export default async function AreaPage({ params }: { params: Params }) {
   const faqs = area.faqs ?? []
   const angles = area.localAngles ?? []
   const whatsappHref = waHref(
-    SITE.whatsappNumber,
+    whatsappNumber,
     `Hi EazyBase, I'd like to talk about a modular extension in ${area.name}.`,
   )
 
@@ -128,10 +134,10 @@ export default async function AreaPage({ params }: { params: Params }) {
             <div className="mt-8 flex flex-wrap items-center gap-5">
               <QuoteCTA />
               <a
-                href={telHref(SITE.phone)}
+                href={telHref(phone)}
                 className="font-display text-base font-semibold text-white transition-colors hover:text-brand-400"
               >
-                Call {formatPhone(SITE.phone)}
+                Call {formatPhone(phone)}
               </a>
             </div>
           </Reveal>
@@ -190,10 +196,10 @@ export default async function AreaPage({ params }: { params: Params }) {
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <a
-              href={telHref(SITE.phone)}
+              href={telHref(phone)}
               className="eb-btn border-2 border-white text-white transition-colors hover:bg-white hover:text-ink-900"
             >
-              Call {formatPhone(SITE.phone)}
+              Call {formatPhone(phone)}
             </a>
             <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="eb-btn-primary">
               WhatsApp us
