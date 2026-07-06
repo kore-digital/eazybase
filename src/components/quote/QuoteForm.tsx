@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 
 import { submitQuoteRequest, type QuoteActionState } from '@/app/(frontend)/actions/quote'
 import { EXTENSION_TYPES } from '@/components/quote/pricing'
@@ -42,12 +42,19 @@ export function QuoteForm() {
     initialQuoteState,
   )
 
-  // Min-time-to-submit spam check: stamped after mount so bots that POST the
-  // raw HTML (or fire instantly) never carry a plausible timestamp.
-  const [startedAt, setStartedAt] = useState('')
+  // Min-time-to-submit spam check: elapsed time is measured entirely on the
+  // client clock (submit − mount) and written into the hidden field at submit,
+  // so server/client clock skew can never flag a real visitor.
+  const mountedAt = useRef(0)
+  const elapsedRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
-    setStartedAt(String(Date.now()))
+    mountedAt.current = Date.now()
   }, [])
+  const stampElapsed = () => {
+    if (elapsedRef.current && mountedAt.current > 0) {
+      elapsedRef.current.value = String(Date.now() - mountedAt.current)
+    }
+  }
 
   if (state.status === 'success') {
     return <SuccessPanel />
@@ -57,9 +64,9 @@ export function QuoteForm() {
   const values = state.values ?? {}
 
   return (
-    <form action={formAction} noValidate={false} className="space-y-5">
+    <form action={formAction} onSubmit={stampElapsed} noValidate={false} className="space-y-5">
       <input type="hidden" name="formType" value="full" />
-      <input type="hidden" name="_eb_ts" value={startedAt} />
+      <input ref={elapsedRef} type="hidden" name="_eb_elapsed" defaultValue="" />
 
       {/* Honeypot — visually hidden, ignored by humans, filled by bots. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">

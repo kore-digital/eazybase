@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 
 import { submitQuoteRequest, type QuoteActionState } from '@/app/(frontend)/actions/quote'
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
@@ -101,11 +101,19 @@ export function InstantQuoteWizard() {
     initialQuoteState,
   )
 
-  // Min-time-to-submit stamp (see server action) — set after mount.
-  const [startedAt, setStartedAt] = useState('')
+  // Min-time-to-submit spam check: elapsed time measured on the client clock
+  // (submit − mount) and stamped into the hidden field at submit — immune to
+  // server/client clock skew (see server action).
+  const mountedAt = useRef(0)
+  const elapsedRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
-    setStartedAt(String(Date.now()))
+    mountedAt.current = Date.now()
   }, [])
+  const stampElapsed = () => {
+    if (elapsedRef.current && mountedAt.current > 0) {
+      elapsedRef.current.value = String(Date.now() - mountedAt.current)
+    }
+  }
 
   const go = (next: Step) => {
     setDirection(next > step ? 1 : -1)
@@ -347,9 +355,9 @@ export function InstantQuoteWizard() {
                   </div>
                 ) : null}
 
-                <form action={formAction} className="mt-5 space-y-4">
+                <form action={formAction} onSubmit={stampElapsed} className="mt-5 space-y-4">
                   <input type="hidden" name="formType" value="instant" />
-                  <input type="hidden" name="_eb_ts" value={startedAt} />
+                  <input ref={elapsedRef} type="hidden" name="_eb_elapsed" defaultValue="" />
                   {/* Estimator payload — the server recomputes the £range from these raw inputs. */}
                   <input type="hidden" name="estimatorType" value={chosenType.key} />
                   <input type="hidden" name="estimatorSpec" value={chosenSpec.key} />

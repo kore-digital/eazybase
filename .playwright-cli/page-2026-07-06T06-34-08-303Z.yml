@@ -1,0 +1,6 @@
+- generic [active] [ref=e1]:
+  - heading "How long does installation take?" [level=3] [ref=e2]:
+    - button "How long does installation take?" [ref=e3]:
+      - generic [ref=e4]: How long does installation take?
+      - img [ref=e5]
+  - paragraph [ref=e7]: A plain paragraph editable node for control comparison.

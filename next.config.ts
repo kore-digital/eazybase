@@ -36,6 +36,12 @@ const nextConfig: NextConfig = {
       {
         pathname: '/api/media/file/**',
       },
+      // Static assets in /public (logo etc.) — once localPatterns is defined,
+      // every local next/image src must match a pattern or the optimizer 400s.
+      {
+        pathname: '/**',
+        search: '',
+      },
     ],
   },
   webpack: (webpackConfig) => {

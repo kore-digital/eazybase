@@ -101,11 +101,15 @@ export function faqPage(faqs: FaqLike[]): SchemaNode {
   }
 }
 
-/** Serialise one or more nodes into a single @graph JSON-LD payload. */
+/**
+ * Serialise one or more nodes into a single @graph JSON-LD payload.
+ * '<' is escaped so editor-controlled CMS strings (FAQ answers, meta
+ * descriptions) can never terminate the <script> tag they're injected into.
+ */
 export function jsonLdScript(...nodes: SchemaNode[]): string {
   return JSON.stringify(
     nodes.length === 1
       ? { '@context': 'https://schema.org', ...nodes[0] }
       : { '@context': 'https://schema.org', '@graph': nodes },
-  )
+  ).replace(/</g, '\\u003c')
 }

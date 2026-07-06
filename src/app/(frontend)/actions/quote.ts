@@ -62,11 +62,16 @@ export async function submitQuoteRequest(
 
   /* --------------------------------------------------------- spam checks */
   // Honeypot: a visually-hidden field humans never fill. Bots that fill it
-  // (or that submit faster than MIN_SUBMIT_MS after render) get a quiet
+  // (or JS-driven bots that submit faster than MIN_SUBMIT_MS) get a quiet
   // "success" — no error to learn from, nothing stored.
+  // _eb_elapsed is measured entirely on the client's clock (submit − mount),
+  // so server/client clock skew can never flag a real visitor. When it's
+  // absent (no-JS, pre-hydration submit) we allow the request — the honeypot
+  // remains the hard gate.
   const honeypot = str(formData, 'companyWebsite', 200)
-  const startedAt = Number(str(formData, '_eb_ts', 20))
-  const tooFast = !Number.isFinite(startedAt) || startedAt <= 0 || Date.now() - startedAt < MIN_SUBMIT_MS
+  const elapsedRaw = str(formData, '_eb_elapsed', 20)
+  const elapsed = Number(elapsedRaw)
+  const tooFast = elapsedRaw !== '' && Number.isFinite(elapsed) && elapsed >= 0 && elapsed < MIN_SUBMIT_MS
   if (honeypot !== '' || tooFast) {
     return { status: 'success' }
   }
