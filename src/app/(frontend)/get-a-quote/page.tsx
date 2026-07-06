@@ -23,6 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: page?.seo?.metaTitle || FALLBACK_TITLE },
     description: page?.seo?.metaDescription || FALLBACK_DESCRIPTION,
+    alternates: { canonical: '/get-a-quote' },
   }
 }
 

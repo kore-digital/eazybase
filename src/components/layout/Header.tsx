@@ -4,10 +4,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AREAS, SITE } from '@/lib/site'
 import { formatPhone, telHref } from '@/lib/format'
 import { QuoteCTA } from '@/components/ui/QuoteCTA'
+import type { Navigation } from '@/payload-types'
 
 /*
  * Logo: /logo.png (green + grey mark on transparent — works on white).
@@ -47,7 +48,14 @@ function PhoneIcon({ className }: { className?: string }) {
   )
 }
 
-export function Header() {
+type HeaderProps = {
+  /** Display-format phone from the site-settings global; SITE.phone fallback. */
+  phone?: string | null
+  /** Main nav items from the navigation global; hardcoded NAV fallback. */
+  navItems?: Navigation['mainNav']
+}
+
+export function Header({ phone, navItems }: HeaderProps = {}) {
   const pathname = usePathname()
   const reducedMotion = useReducedMotion()
 
@@ -55,6 +63,17 @@ export function Header() {
   const [areasOpen, setAreasOpen] = useState(false) // desktop dropdown
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileAreasOpen, setMobileAreasOpen] = useState(false)
+
+  const hamburgerRef = useRef<HTMLButtonElement>(null)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const areasTriggerRef = useRef<HTMLAnchorElement>(null)
+
+  // CMS-driven nav with the hardcoded NAV as fallback; the /areas item keeps
+  // its mega-dropdown regardless of source.
+  const nav: NavItem[] = navItems?.length
+    ? navItems.map((item) => ({ label: item.label, href: item.href, hasAreas: item.href === '/areas' }))
+    : NAV
+  const phoneNumber = phone?.trim() || SITE.phone
 
   // Close the mobile menu on route change; lock body scroll while open.
   useEffect(() => {
@@ -67,6 +86,47 @@ export function Header() {
     return () => {
       document.body.style.overflow = ''
     }
+  }, [mobileOpen])
+
+  // Mobile menu: Escape closes (returning focus to the hamburger) and Tab is
+  // trapped within hamburger + menu while open.
+  useEffect(() => {
+    if (!mobileOpen) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileOpen(false)
+        hamburgerRef.current?.focus()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const menu = mobileMenuRef.current
+      if (!menu) return
+
+      const focusables = [
+        hamburgerRef.current,
+        ...Array.from(menu.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')),
+      ].filter((el): el is HTMLElement => Boolean(el))
+      if (focusables.length === 0) return
+
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement as HTMLElement | null
+      const index = active ? focusables.indexOf(active) : -1
+
+      if (e.shiftKey) {
+        if (index <= 0) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else if (index === -1 || index === focusables.length - 1) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
   }, [mobileOpen])
 
   return (
@@ -87,7 +147,7 @@ export function Header() {
         {/* Desktop nav */}
         <nav aria-label="Main" className="hidden lg:block">
           <ul className="flex items-center gap-1" onMouseLeave={() => setHovered(null)}>
-            {NAV.map((item) => {
+            {nav.map((item) => {
               const active =
                 item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href)
               return (
@@ -102,8 +162,30 @@ export function Header() {
                   onMouseLeave={() => {
                     if (item.hasAreas) setAreasOpen(false)
                   }}
+                  onBlur={
+                    item.hasAreas
+                      ? (e) => {
+                          // Close when focus moves outside the trigger + dropdown.
+                          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                            setAreasOpen(false)
+                          }
+                        }
+                      : undefined
+                  }
+                  onKeyDown={
+                    item.hasAreas
+                      ? (e) => {
+                          if (e.key === 'Escape' && areasOpen) {
+                            e.stopPropagation()
+                            setAreasOpen(false)
+                            areasTriggerRef.current?.focus()
+                          }
+                        }
+                      : undefined
+                  }
                 >
                   <Link
+                    ref={item.hasAreas ? areasTriggerRef : undefined}
                     href={item.href}
                     aria-current={active ? 'page' : undefined}
                     className={[
@@ -143,10 +225,10 @@ export function Header() {
                     <AnimatePresence>
                       {areasOpen ? (
                         <motion.div
-                          initial={{ opacity: 0, y: 8 }}
+                          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ duration: 0.18, ease: 'easeOut' }}
+                          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                          transition={{ duration: reducedMotion ? 0 : 0.18, ease: 'easeOut' }}
                           className="absolute top-full left-1/2 w-[30rem] -translate-x-1/2 pt-2"
                         >
                           <div className="grid grid-cols-2 gap-6 rounded-lg border border-ink-100 bg-white p-6 shadow-xl shadow-ink-950/10">
@@ -193,17 +275,18 @@ export function Header() {
         {/* Right: phone + quote */}
         <div className="hidden items-center gap-5 lg:flex">
           <a
-            href={telHref(SITE.phone)}
+            href={telHref(phoneNumber)}
             className="group inline-flex items-center gap-2 font-display text-sm font-semibold tracking-wide text-ink-800 transition-colors hover:text-brand-600"
           >
             <PhoneIcon className="h-4 w-4 text-brand-600 transition-transform duration-200 group-hover:-rotate-12" />
-            {formatPhone(SITE.phone)}
+            {formatPhone(phoneNumber)}
           </a>
           <QuoteCTA className="!px-5 !py-2.5" />
         </div>
 
         {/* Mobile: hamburger */}
         <button
+          ref={hamburgerRef}
           type="button"
           className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ink-900 lg:hidden"
           aria-expanded={mobileOpen}
@@ -238,16 +321,17 @@ export function Header() {
       <AnimatePresence>
         {mobileOpen ? (
           <motion.div
+            ref={mobileMenuRef}
             id="eb-mobile-menu"
             initial={reducedMotion ? { opacity: 0 } : { x: '100%' }}
             animate={reducedMotion ? { opacity: 1 } : { x: 0 }}
             exit={reducedMotion ? { opacity: 0 } : { x: '100%' }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: reducedMotion ? 0 : 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-0 top-18 z-40 flex flex-col overflow-y-auto bg-white lg:hidden"
           >
             <nav aria-label="Mobile" className="eb-container flex-1 py-6">
               <ul className="divide-y divide-ink-100">
-                {NAV.map((item) =>
+                {nav.map((item) =>
                   item.hasAreas ? (
                     <li key={item.href}>
                       <button
@@ -274,7 +358,7 @@ export function Header() {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: 'easeOut' }}
+                            transition={{ duration: reducedMotion ? 0 : 0.25, ease: 'easeOut' }}
                             className="overflow-hidden"
                           >
                             <div className="grid grid-cols-2 gap-x-4 pb-4">
@@ -293,7 +377,7 @@ export function Header() {
                                       <li key={area.slug}>
                                         <Link
                                           href={`/areas/${area.slug}`}
-                                          className="block py-1.5 text-sm text-ink-600"
+                                          className="flex min-h-11 items-center py-1.5 text-sm text-ink-600"
                                           onClick={() => setMobileOpen(false)}
                                         >
                                           {area.name}
@@ -325,11 +409,11 @@ export function Header() {
 
             <div className="eb-container border-t border-ink-100 py-6 pb-28">
               <a
-                href={telHref(SITE.phone)}
+                href={telHref(phoneNumber)}
                 className="mb-4 inline-flex items-center gap-2 font-display text-base font-semibold text-ink-900"
               >
                 <PhoneIcon className="h-4 w-4 text-brand-600" />
-                {formatPhone(SITE.phone)}
+                {formatPhone(phoneNumber)}
               </a>
               <QuoteCTA className="w-full" />
             </div>

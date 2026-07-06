@@ -22,10 +22,13 @@ import type {
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPage('about-us')
   return {
-    title: page?.seo?.metaTitle ?? 'About Us | EazyBase Modular Home Extensions',
+    // Seeded metaTitles already carry "| EazyBase" — absolute avoids the
+    // layout template doubling the suffix.
+    title: { absolute: page?.seo?.metaTitle ?? 'About Us | EazyBase Modular Home Extensions' },
     description:
       page?.seo?.metaDescription ??
       'Meet EazyBase — experienced, fully insured and highly trained. We design, factory-build and install quality modular home extensions at affordable prices.',
+    alternates: { canonical: '/about-us' },
   }
 }
 

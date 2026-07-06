@@ -17,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: page?.seo?.metaTitle ? { absolute: page.seo.metaTitle } : FALLBACK_TITLE,
     description: page?.seo?.metaDescription ?? FALLBACK_DESCRIPTION,
+    alternates: { canonical: '/social' },
   }
 }
 

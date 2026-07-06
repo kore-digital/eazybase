@@ -50,7 +50,9 @@ const TAB_IMAGE_KEYWORDS: Record<string, string> = {
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPage('home')
   return {
-    title: page?.seo?.metaTitle ?? 'Modular Home Extensions | EazyBase',
+    // Seeded metaTitles already carry "| EazyBase" — absolute avoids the
+    // layout template doubling the suffix.
+    title: { absolute: page?.seo?.metaTitle ?? 'Modular Home Extensions | EazyBase' },
     description:
       page?.seo?.metaDescription ??
       'Award-winning prefab modular home extensions — factory-built in Blackburn in as little as 4 weeks, installed on-site in under a week.',
@@ -140,7 +142,7 @@ export default async function HomePage() {
 
       {/* 4 — Use cases: Kids Playrooms / Home Office / Dining Rooms / Kitchens */}
       {tabs.length > 0 ? (
-        <section className="bg-ink-50">
+        <section id="use-cases" className="scroll-mt-24 bg-ink-50">
           <div className="eb-container py-16 md:py-24">
             <Reveal>
               <SectionHeading
