@@ -7,3 +7,4 @@ media
 .playwright-cli/
 
 .vercel
+.env*
