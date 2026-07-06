@@ -85,11 +85,9 @@ export async function submitQuoteRequest(
   // New optional shared fields (assistant supplies these; ignored elsewhere).
   // Validated against the known key sets so a tampered POST can't store junk.
   const propertyTypeRaw = str(formData, 'propertyType', 40)
-  const propertyType = PROPERTY_TYPES.some((p) => p.key === propertyTypeRaw)
-    ? propertyTypeRaw
-    : ''
+  const propertyType = PROPERTY_TYPES.find((p) => p.key === propertyTypeRaw)?.key
   const timelineRaw = str(formData, 'timeline', 40)
-  const timeline = TIMELINES.some((t) => t.key === timelineRaw) ? timelineRaw : ''
+  const timeline = TIMELINES.find((t) => t.key === timelineRaw)?.key
   const materialPreferences = str(formData, 'materialPreferences', 500)
 
   /* --------------------------------------------------------- spam checks */
@@ -221,8 +219,8 @@ export async function submitQuoteRequest(
         addressLine1: values.addressLine1 || undefined,
         town: values.town || undefined,
         message: values.message || undefined,
-        propertyType: propertyType || undefined,
-        timeline: timeline || undefined,
+        propertyType,
+        timeline,
         materialPreferences: materialPreferences || undefined,
         estimator,
         status: 'new',

@@ -1,22 +1,28 @@
 import type { Metadata } from 'next'
-import { RichText } from '@payloadcms/richtext-lexical/react'
 
-import { QuoteAside } from '@/components/quote/QuoteAside'
-import { QuoteForm } from '@/components/quote/QuoteForm'
+import { QuoteAssistant } from '@/components/quote/assistant/QuoteAssistant'
 import { Reveal } from '@/components/ui/Reveal'
 import { SectionHeading } from '@/components/ui/SectionHeading'
+import { SITE } from '@/lib/site'
 import { getPage } from '@/lib/data'
 
 /**
- * /get-a-quote — the consolidated quote form (audit §8: the old site's two
- * different forms merged into one canonical form). Copy comes from the
- * seeded CMS page; the section carries id="quote-form" so the sticky mobile
- * CTA bar hides itself while the form is in view.
+ * /get-a-quote — the conversational Quote Assistant ("Eazy"). A chat-led
+ * capture that gathers the same details as the /instant-quote wizard and
+ * shows an indicative range, then hands the lead to the team. The section
+ * carries data-quote-form so the sticky mobile CTA bar hides while it's in view.
  */
 
 const FALLBACK_TITLE = 'Get a Quote | EazyBase Modular Home Extensions'
 const FALLBACK_DESCRIPTION =
-  'Tell us about your project and get a fast, accurate quote for your modular home extension. Our team responds seven days a week.'
+  'Answer a few quick questions and get an indicative price in about 60 seconds — then our team confirms your fixed-price quote. No obligation, ever.'
+
+const BENEFITS = [
+  'No obligation, ever',
+  'Fixed price after survey',
+  'Response within hours',
+  'Finance options available',
+]
 
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPage('get-a-quote')
@@ -30,67 +36,76 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GetAQuotePage() {
   const page = await getPage('get-a-quote')
 
-  const sections = page?.sections ?? []
-  const introIndex = sections.findIndex((s) => s.blockType === 'richText')
-  const intro = introIndex >= 0 ? sections[introIndex] : null
-
   return (
-    <>
-      {/* Static page hero — simple fade/rise only (the home page owns the
-          signature assembly animation). */}
-      <section className="bg-ink-950 py-16 sm:py-20">
-        <div className="eb-container">
-          <Reveal>
+    <section
+      data-quote-form
+      className="bg-ink-50 py-14 sm:py-20"
+      style={{
+        backgroundImage:
+          'radial-gradient(ellipse 60% 50% at 15% 0%, rgba(150,193,31,0.10), transparent 70%)',
+      }}
+    >
+      <div className="eb-container grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
+        {/* Left: pitch + trust */}
+        <Reveal>
+          <div>
             <SectionHeading
               as="h1"
               align="left"
-              onDark
-              eyebrow="Free & no obligation"
+              eyebrow="Instant quote"
               lede={
                 page?.heroSub ? (
                   <span data-eb-edit={`pages:${page.id}:heroSub`}>{page.heroSub}</span>
                 ) : (
-                  'Quick quotes, seven days a week.'
+                  'Answer a few quick questions and our team will prepare a personalised, fixed-price quote — no lengthy back-and-forth.'
                 )
               }
             >
               {page?.heroHeading ? (
                 <span data-eb-edit={`pages:${page.id}:heroHeading`}>{page.heroHeading}</span>
               ) : (
-                'Get a Quote'
+                'Get your free, fixed-price quote'
               )}
             </SectionHeading>
-          </Reveal>
-        </div>
-      </section>
 
-      {/* The form + side column */}
-      <section id="quote-form" data-quote-form className="bg-white py-14 sm:py-20">
-        <div className="eb-container grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
-          <Reveal>
-            <div>
-              {intro && page && 'content' in intro && intro.content ? (
-                <div
-                  data-eb-edit-rich={`pages:${page.id}:sections.${introIndex}.content`}
-                  className="mb-8 max-w-2xl text-base leading-relaxed text-ink-600 [&_p+p]:mt-4"
-                >
-                  <RichText data={intro.content} />
-                </div>
-              ) : (
-                <p className="mb-8 max-w-2xl text-base leading-relaxed text-ink-600">
-                  Give us a few brief details about your project and one of our team will be in
-                  touch to talk it through and provide an accurate quote.
-                </p>
-              )}
-              <QuoteForm />
+            <ul className="mt-8 space-y-3">
+              {BENEFITS.map((b) => (
+                <li key={b} className="flex items-center gap-3 text-ink-700">
+                  <span
+                    aria-hidden="true"
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-500"
+                  >
+                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-ink-950" fill="none">
+                      <path
+                        d="M3.5 8.5l3 3 6-7"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <span className="font-medium">{b}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-8 flex items-center gap-3 rounded-xl border border-ink-100 bg-white/70 px-4 py-3">
+              <svg viewBox="0 0 24 24" className="h-8 w-8 shrink-0 text-brand-600" fill="currentColor" aria-hidden="true">
+                <path d="M12 2l2.4 5 5.6.5-4.2 3.7 1.3 5.5L12 19.3 6.9 22.2l1.3-5.5L4 13l5.6-.5L12 2z" />
+              </svg>
+              <p className="text-sm text-ink-600">
+                <strong className="font-semibold text-ink-900">{SITE.awardBody}</strong> — {SITE.award}
+              </p>
             </div>
-          </Reveal>
+          </div>
+        </Reveal>
 
-          <Reveal delay={0.12}>
-            <QuoteAside />
-          </Reveal>
-        </div>
-      </section>
-    </>
+        {/* Right: the assistant */}
+        <Reveal delay={0.12}>
+          <QuoteAssistant />
+        </Reveal>
+      </div>
+    </section>
   )
 }
