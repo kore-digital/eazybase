@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Montserrat, Open_Sans } from 'next/font/google'
 import React from 'react'
 
+import { EditorOverlay } from '@/components/editor/EditorOverlay'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
 import { StickyMobileCTA } from '@/components/layout/StickyMobileCTA'
@@ -42,6 +43,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         <Footer />
         <StickyMobileCTA />
         <WhatsAppFloat />
+        <EditorOverlay />
       </body>
     </html>
   )
