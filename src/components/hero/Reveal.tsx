@@ -6,8 +6,10 @@
  * thin client wrapper around motion.div.
  */
 
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
+
+import { useReducedMotionSafe } from '@/components/ui/useReducedMotionSafe'
 
 export type RevealProps = {
   children: ReactNode
@@ -17,7 +19,9 @@ export type RevealProps = {
 }
 
 export function Reveal({ children, delay = 0, className }: RevealProps) {
-  const prefersReduced = useReducedMotion()
+  // Hydration-safe (false on SSR + first client render, flips post-mount) —
+  // reduced-motion users get a duration-0 snap instead of a mismatch.
+  const prefersReduced = useReducedMotionSafe()
 
   return (
     <motion.div

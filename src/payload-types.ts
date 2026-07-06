@@ -294,6 +294,9 @@ export interface UseCaseTabsBlock {
  */
 export interface ProcessTimelineBlock {
   heading?: string | null;
+  /**
+   * Every step renders in the home page Build Story. The animated build illustration is hand-tuned for exactly 5 steps — any other count still animates, but falls back to evenly-spaced scene sampling (scene beats no longer align 1:1 with each step).
+   */
   steps?:
     | {
         title: string;
@@ -315,7 +318,7 @@ export interface StatsCountersBlock {
     | {
         value: number;
         /**
-         * e.g. "weeks", "days", "-year"
+         * Rendered tight after the number — start word suffixes with a space, e.g. " weeks", " days", "-year".
          */
         suffix?: string | null;
         label: string;

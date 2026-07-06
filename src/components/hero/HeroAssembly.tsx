@@ -19,8 +19,10 @@
  * + green tick sweep (echoing the logo checkmark) → gentle idle float.
  */
 
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
+
+import { useReducedMotionSafe } from '@/components/ui/useReducedMotionSafe'
 
 const STROKE = '#ffffff' // white "mortar" seams between modules
 const GLASS = '#c9d6de' // light blue-grey glazing
@@ -88,8 +90,10 @@ export type HeroAssemblyProps = {
 }
 
 export function HeroAssembly({ static: staticProp = false, className }: HeroAssemblyProps) {
-  const prefersReduced = useReducedMotion()
-  const isStatic = staticProp || Boolean(prefersReduced)
+  // Hydration-safe: false on SSR + first client render, flips post-mount so
+  // reduced-motion visitors snap to the finished frame without a mismatch.
+  const prefersReduced = useReducedMotionSafe()
+  const isStatic = staticProp || prefersReduced
 
   return (
     <svg

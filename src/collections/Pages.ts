@@ -64,6 +64,10 @@ const ProcessTimelineBlock: Block = {
       name: 'steps',
       type: 'array',
       minRows: 2,
+      admin: {
+        description:
+          'Every step renders in the home page Build Story. The animated build illustration is hand-tuned for exactly 5 steps — any other count still animates, but falls back to evenly-spaced scene sampling (scene beats no longer align 1:1 with each step).',
+      },
       fields: [
         { name: 'title', type: 'text', required: true },
         { name: 'body', type: 'textarea' },

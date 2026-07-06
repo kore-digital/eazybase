@@ -5,6 +5,7 @@ import React from 'react'
 import { EditorOverlay } from '@/components/editor/EditorOverlay'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import { SmoothScroll } from '@/components/layout/SmoothScroll'
 import { StickyMobileCTA } from '@/components/layout/StickyMobileCTA'
 import { WhatsAppFloat } from '@/components/layout/WhatsAppFloat'
 import { getNavigation, getSiteSettings } from '@/lib/data'
@@ -31,6 +32,15 @@ export const metadata: Metadata = {
   },
   description:
     'Award-winning prefab modular home extensions. Factory-built in as little as 4 weeks, installed on-site in under a week. Serving the North West and London.',
+  // Green skewed-block house glyph (see public/favicon.svg) — the .ico also
+  // satisfies clients that request /favicon.ico directly (no more 404s).
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.ico',
+  },
   openGraph: {
     type: 'website',
     siteName: 'EazyBase',
@@ -54,6 +64,8 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="en-GB" className={`${montserrat.variable} ${openSans.variable}`}>
       <body>
+        {/* Site-wide Lenis smooth scrolling (no-op under prefers-reduced-motion) */}
+        <SmoothScroll />
         <Header phone={settings?.phone} navItems={navigation?.mainNav} />
         <main>{children}</main>
         <Footer

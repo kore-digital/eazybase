@@ -1,0 +1,134 @@
+[
+ {
+  "title": "Hydration mismatch for every prefers-reduced-motion visitor",
+  "severity": "major",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildStory.tsx",
+  "detail": "BuildStory.tsx:244 branches on useReducedMotion() to render a completely different tree (stacked static panels vs the 500vh pinned track). Motion's useReducedMotion returns null during SSR but the real boolean on the FIRST client render (it reads the media query synchronously in useState). So for a reduced-motion user, the server HTML is the 500vh sticky-track tree while the first client render is the stacked-panels tree — a guaranteed React 19 hydration failure on the home page: console error, the whole subtree is thrown away and client re-rendered, with a visible layout flash (page height jumps from ~500vh to auto, which can also shift restored scroll position). StatementIntro.tsx:28-38 has the same class of mismatch in milder form (initial='hidden' inline transform styles differ between server and reduced-motion client).",
+  "suggestedFix": "Keep the first client render identical to SSR: gate the reduced variant behind post-mount state (e.g. const [rm, setRm] = useState(false); useEffect(() => setRm(matchMedia('(prefers-reduced-motion: reduce)').matches), [])), or render one DOM tree and switch presentation via a motion-reduce: CSS strategy."
+ },
+ {
+  "title": "\"Scroll to build\" hint is fully hidden behind StickyMobileCTA on mobile",
+  "severity": "minor",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildStory.tsx",
+  "detail": "BuildStory.tsx:310 places the scroll hint at bottom-6 (24px) with z-10. On <md viewports StickyMobileCTA (src/components/layout/StickyMobileCTA.tsx:39) is fixed inset-x-0 bottom-0 z-40 and ~50px tall (py-3.5 + text + safe-area inset), so the hint (spanning roughly 24-40px from the bottom) is entirely covered by the CTA bar for the whole pinned section. The copy column correctly uses pb-28 to clear the bar; the hint does not.",
+  "suggestedFix": "Raise the hint on mobile, e.g. bottom-20 (or bottom-[calc(4.5rem+env(safe-area-inset-bottom))]) with md:bottom-8, keeping desktop unchanged."
+ },
+ {
+  "title": "Mortar seam lines stay at full strength over the Interior cutaway",
+  "severity": "minor",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildScene.tsx",
+  "detail": "BuildScene.tsx:519-526 — the mortar-course Layer's opacity keyframes are [[0.565,0.575,0.59],[0,1,1]], i.e. it snaps on during Build and then holds at 1 forever. But during Phase 4 (0.6-0.8) the front wall modules it sits on are dimmed to 0.13 (line 487), and the mortar layer renders AFTER the interior layer (planks/inner wall, lines 459-484), so the two front-face seams (400,411→120,271 and 400,446→288,390) float as bright white lines on top of the flooring planks and cutaway (the second line crosses the plank region directly). The cutaway illusion is broken by strokes belonging to walls that are supposed to have faded away.",
+  "suggestedFix": "Nest the two front-face seam lines inside the dimming Layer at line 487 (keep the two side-face seams where they are), or give the mortar layer matching dim keyframes o=[[0.565,0.575,0.605,0.65,0.788,0.835],[0,1,1,0.13,0.13,1]]."
+ },
+ {
+  "title": "processTimeline heading is only bound to an sr-only element — inline editing regressed",
+  "severity": "minor",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildStory.tsx",
+  "detail": "BuildStory.tsx:247 and :275 put data-eb-edit={`${editBase}.heading`} on an sr-only <h2> (1px clipped, absolutely positioned). The old ProcessStrip rendered the heading visibly inside SectionHeading, so editors could hover and click it. EditorChrome's edit mode works via hover pill + click + contentEditable on the target element (EditorChrome.tsx:229-272) — none of which is usable on a clipped 1px element, so the block heading is no longer inline-editable at all in either the full or reduced-motion branch (editors must go to the admin).",
+  "suggestedFix": "Either surface the heading visually somewhere in the section (e.g. as an eyebrow above the first phase or in StatementIntro) keeping the data-eb-edit binding, or accept and document that heading edits for this block are admin-only and drop the misleading binding."
+ },
+ {
+  "title": "Phase count hard-coded to 5: extra CMS steps silently dropped, missing steps back-filled with uneditable hard-coded copy",
+  "severity": "minor",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildStory.tsx",
+  "detail": "BuildStory.tsx:38 fixes PHASE_COUNT=5 and :225 maps over FALLBACK_PHASES, so only steps[0..4] are ever consumed. The Pages.ts processTimeline block allows any number of steps (minRows: 2, no maxRows). If an editor adds a 6th step in the admin it silently never appears on the home page (the old ProcessStrip rendered all steps); if the block has fewer than 5, the tail phases show hard-coded FALLBACK_PHASES copy that is not in the CMS and (correctly) carries no data-eb-edit binding — an editor sees text on the live site they cannot find or change anywhere in the admin. The scene itself being 5-phase is fine, but the content behaviour is surprising.",
+  "suggestedFix": "Set maxRows: 5 (and ideally minRows: 5) on the processTimeline steps array in src/collections/Pages.ts so the CMS contract matches the component, or at least document the 5-step contract in the block's admin description."
+ },
+ {
+  "title": "React keys derived from CMS step titles — duplicates break rendering",
+  "severity": "minor",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildStory.tsx",
+  "detail": "BuildStory.tsx:251 and :298 use key={phase.title} for both the reduced-motion panels and the PhaseCopyScrub stack. Titles come from the CMS (steps[i].title) and nothing prevents two steps sharing a title; duplicate keys cause React duplicate-key warnings and wrong reconciliation (phases rendering stale copy). The deleted ProcessStrip keyed by step.id ?? step.title. Since the arrays here are fixed-length positional (index i is the phase number), the index is actually the correct key.",
+  "suggestedFix": "Use key={i} (position is the identity here), or steps[i]?.id ?? i."
+ },
+ {
+  "title": "Mobile progress rail slides under the header when the editor admin bar is active",
+  "severity": "minor",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildStory.tsx",
+  "detail": "BuildStory.tsx:177 pins the mobile rail at top: 5.5rem (88px), clearing the ~73px sticky header for anonymous visitors. But for logged-in editors EditorChrome adds a 2.5rem admin bar and pushes the header down (html.eb-authed body > header { top: 2.5rem }, EditorChrome.tsx:42), so the header now occupies up to ~113px and the z-50 header overlaps the z-20 rail — the phase nav buttons are partially hidden and unclickable exactly for the people who need to click phases while editing copy. Editor-mode only; anonymous mobile is fine.",
+  "suggestedFix": "Position the mobile rail with the editor variable, e.g. style={{ top: 'calc(5.5rem + var(--eb-adminbar-h, 0px))' }}."
+ },
+ {
+  "title": "Reduced-motion static frame for phase 3 freezes the gantry mid-fade",
+  "severity": "minor",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildStory.tsx",
+  "detail": "BuildStory.tsx:42 sets PHASE_FREEZE[2] = 0.59, but the gantry layer in BuildScene.tsx:529 fades out over [0.575, 0.6], so the phase-3 static panel renders the gantry at exactly 0.40 opacity — a half-transparent ghost in what should be a clean 'finished frame'. At 0.60 the gantry is fully gone, the roof is settled (y=0 until 0.605) and the facade dim has not yet started (begins 0.605), so 0.60 is a clean freeze point. All other freeze values check out (0.165, 0.36, 0.77, 1 all land on fully-resolved states).",
+  "suggestedFix": "Change PHASE_FREEZE[2] from 0.59 to 0.6."
+ },
+ {
+  "title": "Interior cutaway is occluded: side-wall modules never dim, hiding the sockets, two wall-washers and right-hand planks",
+  "severity": "major",
+  "file": "src/components/home/build-story/BuildScene.tsx",
+  "detail": "During Phase 4 only the three front wall modules dim to 0.13 (Layer at line 487). The two side-wall modules (WALL_SIDE_A/B, lines 499-504) are separate Layers that stay at full opacity and are painted AFTER the interior Layer (line 459). Verified by polygon maths: the socket/switch details (x 468-546, y 294-346) sit entirely inside WALL_SIDE_B's screen area (x 484-568), so the 'sockets pop' beat (lines 479-483) is completely invisible; wall-washer 4 at (512,288) is hidden, washer 3's cone/floor-pool is hidden, and the right ends of the plaster wash and planks 4-6 are covered. The spec's 'sockets/switch details pop' moment never reads on screen.",
+  "suggestedFix": "Either wrap WALL_SIDE_A/B in the same 0.605-0.835 dim Layer as the front modules (a true cutaway), or relocate the sockets and INNER_LIGHTS[2]/[3] into the region visible through the dimmed front face (x < ~400)."
+ },
+ {
+  "title": "Lifted roof 'lid' is hard-cropped by the SVG viewBox for the whole Interior phase",
+  "severity": "major",
+  "file": "src/components/home/build-story/BuildScene.tsx",
+  "detail": "The roof Layer (lines 508-516) lifts y to -130 between p=0.655 and 0.782. The roof deck's back vertex is at y=102, so lifted it sits at y=-28 — outside the 0 0 800 600 viewBox. SVG overflow is hidden by default and no overflow class is set, so throughout Phase 4 the floating roof shows a hard horizontal crop line mid-stage (also frozen into the reduced-motion Phase 4 static frame at PHASE_FREEZE=0.77). This is a visible glitch in the signature moment on both desktop and the mobile background layer.",
+  "suggestedFix": "Reduce the lift to about -90px (back vertex stays at y>=12, clear of the gantry which is gone by p=0.6), or give the composition headroom (e.g. viewBox 0 -40 800 640)."
+ },
+ {
+  "title": "StatementIntro exceeds the spec's <=40vh budget on common laptop viewports",
+  "severity": "minor",
+  "file": "src/components/home/build-story/StatementIntro.tsx",
+  "detail": "Content height is fixed, not viewport-bound: md:py-20 (160px) + two display lines at clamp cap 6.5rem x 0.98 (~204px) + supporting line (~52px) ≈ 416px. That is ~46vh at 900px viewport height and ~52vh at 800px — over the spec's 'Keep <=40vh tall' for the title card on typical 13-14 inch laptops. The type itself is on-voice (Montserrat extrabold uppercase, ink-950 on white, block-accent bullet) and correctly out-scales the 5rem phase titles.",
+  "suggestedFix": "Trim md:py-20 to ~py-12/14 and cap the clamp at ~5.5rem, or add max-height guards (e.g. clamp against vh: text-[min(8vw,14vh)])."
+ },
+ {
+  "title": "Scroll hint sits behind the fixed StickyMobileCTA bar on mobile",
+  "severity": "minor",
+  "file": "src/components/home/build-story/BuildStory.tsx",
+  "detail": "The 'Scroll to build' hint (line 308-318) is absolute bottom-6 (24px) z-10 inside the stage, while StickyMobileCTA is fixed inset-x-0 bottom-0 z-40 md:hidden — on mobile the bar covers the hint entirely, so the affordance the spec asks for never shows on the devices that most need it. The phase copy already compensates with pb-28; the hint does not. (Desktop placement and the scrubbed fade-out/fade-back via useTransform [0.04,0.09] behave exactly per spec.)",
+  "suggestedFix": "On mobile move the hint above the CTA bar (e.g. bottom-24 md:bottom-8) or hide it below md and rely on the top progress rail."
+ },
+ {
+  "title": "StatementIntro word-split spans concatenate for screen readers; animated words should be aria-hidden with an accessible h2 name",
+  "severity": "minor",
+  "file": "src/components/home/build-story/StatementIntro.tsx",
+  "detail": "Each word is an inline-block span with spacing done via mr-[0.22em] and no whitespace text nodes between siblings, so the h2's accessible name computes as 'MORESPACE.' / 'LESSBUILDINGSITE.' — screen-reader users navigating by heading get garbled text. The section-level aria-label mitigates landmark navigation but not the heading itself.",
+  "suggestedFix": "Add aria-label=\"More space. Less building site.\" (or an sr-only span) to the h2 and aria-hidden=\"true\" to the animated word wrapper."
+ },
+ {
+  "title": "Reduced-motion fallback renders five identical role=img SVGs each labelled with the full five-phase journey",
+  "severity": "minor",
+  "file": "src/components/home/build-story/BuildStory.tsx",
+  "detail": "In the stacked fallback (lines 244-270) each StaticScene is a full BuildScene carrying role=\"img\" + the long aria-label 'Continuous illustration of a modular extension moving from blueprint concept through design...' — a screen-reader user hears that whole sentence five times, and the label is wrong per panel (the Phase 1 frame shows only the blueprint). Visually the fallback is otherwise solid: correct freeze frames per phase (verified PHASE_FREEZE values against the scene's keyframe ranges), copy left / scene right, ink-900 hairline separators — though Phase 4's frame inherits the cropped-roof defect above.",
+  "suggestedFix": "Pass an optional per-phase aria-label into BuildScene (e.g. 'Phase 1: blueprint concept sketch of the extension'), or render the static frames aria-hidden since PhaseCopy already carries the narrative."
+ },
+ {
+  "title": "Progress-rail nodes are small targets with only default focus styling on the site's signature interaction",
+  "severity": "minor",
+  "file": "src/components/home/build-story/BuildStory.tsx",
+  "detail": "Nodes are h-6 w-7 (24x28px) — meets WCAG 2.5.8 AA minimum (24px) but is small for the primary in-section navigation, especially the horizontal mobile rail where it is the only visible wayfinding. They rely on the browser default focus outline (skewed with the transform); everywhere else the design system invests in states (eb-range thumb gets an explicit focus ring). Keyboard access itself is correct: real buttons, aria-label 'Go to phase N: Title', aria-current='step', decorative rail lines aria-hidden.",
+  "suggestedFix": "Add an extended hit area (e.g. before: pseudo-element or p-2 wrapper) toward ~44px and a branded focus-visible ring (outline-2 outline-offset-2 outline-brand-400) consistent with the rest of the system."
+ },
+ {
+  "title": "Completion finale duplicates the hero's ending verbatim (same tick path, same downlight coordinates) while the hero keeps its idle loop",
+  "severity": "minor",
+  "file": "src/components/home/build-story/BuildScene.tsx",
+  "detail": "The Phase 5 tick sweep uses the identical path 'M596 356 L636 392 L706 302' at the same 10px width and the same three exterior downlight positions as HeroAssembly's finale, so one page shows the exact same closing beat twice on the exact same drawing. Sharing the language is per spec, and phases 1, 2 and 4 differentiate strongly — but the finale is the one moment that is a literal repeat, and the hero also keeps its infinite idle float, which the spec flags as the first thing to simplify 'if they clash'. Borderline rather than a violation; the rest of the section's scale (500vh, one dark block mid-page) sits comfortably against the surrounding light sections and does not overwhelm the page.",
+  "suggestedFix": "Differentiate the Build Story finale slightly — e.g. sweep the tick larger/centred over the facade or fold it into the glow — and/or apply the spec's sanctioned mitigation of ending the hero's idle float after assembly."
+ },
+ {
+  "title": "Hydration failure when prefers-reduced-motion is on — React regenerates the whole client tree",
+  "severity": "major",
+  "detail": "Reproduced live with Playwright emulateMedia({ reducedMotion: 'reduce' }) on http://localhost:3000: the page throws 'Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client.' and the Next.js dev overlay shows '1 Issue' (screenshot bs-reduced-motion.png, badge bottom-left). Cause: useReducedMotion() returns false during SSR, so the server HTML contains the full-motion variant (500vh track / animated markup), while reduced-motion clients render the completely different stacked-panels branch in C:\\Users\\info\\GITHUB\\eazybase\\src\\components\\home\\build-story\\BuildStory.tsx (the `if (reducedMotion)` branch around line 244) — and the same first-render divergence pattern exists in StatementIntro.tsx and AnimatedCounter.tsx (`shown = reducedMotion ? value : display` is the likely source of the exact 'text didn't match' message). The reduced-motion UX itself DOES work after recovery (verified: track collapses from 4500px to 2769px, no sticky element, 5 stacked panels each with copy + frozen scene frame, Lenis not initialised — SmoothScroll.tsx correctly skips it), but React discards and re-renders the tree, which costs performance, can flash the wrong variant, and logs an error — violating the zero-console-errors bar for exactly the accessibility audience the fallback exists for. Motion also logs a dev warning ('You have Reduced Motion enabled on your device...') on that path. No hydration errors occur with normal motion settings.",
+  "file": "src/components/home/build-story/BuildStory.tsx",
+  "suggestedFix": "Make the SSR and first client render identical, then swap: gate the reduced-motion branch behind a `mounted` flag (useEffect setState) so the first client render always matches the server's full-motion markup, or render both variants and hide/show them with a CSS `@media (prefers-reduced-motion: reduce)` rule instead of a JS branch. Apply the same treatment to AnimatedCounter (render the animated variant's initial text on first paint) and StatementIntro."
+ },
+ {
+  "title": "Console error on every page load: /favicon.ico 404",
+  "severity": "minor",
+  "detail": "The verify run's zero-console-errors check fails: every load of http://localhost:3000 logs '[ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/favicon.ico'. This is the only console error on the normal-motion path (there is also one Next.js dev warning suggesting the AwardStrip LCP image /api/media/file/Northern-Enterprise-Awards-900x632.jpg should get loading=\"eager\"/priority — worth fixing but dev-only advice). Not caused by the Build Story work, but it fails the stated acceptance bar.",
+  "file": "src/app/(frontend)/layout.tsx",
+  "suggestedFix": "Add an app-router icon (src/app/favicon.ico or an icon.png/icon.svg file convention, or metadata.icons) so /favicon.ico resolves."
+ },
+ {
+  "title": "VERIFY PASS SUMMARY — everything else passed",
+  "severity": "minor",
+  "detail": "Verified against docs/BUILD-STORY-SPEC.md on the running dev server (:3000, HTTP 200), desktop 1440x900, playwright-cli session 'verify' (closed after run). PASSED: (1) SEO/initial HTML — curl of / contains all 5 CMS phase copies with data-eb-edit paths pages sections steps.0–4 (Concept/'We map out your design…', Design/'We plan the design…', Build/'from the ground up…', Interior/'plastering, doors, flooring…', Completion/'full snagging checklist…' — note steps.4 CMS body overrides the 'snagged, certified' fallback, expected) plus 'Scroll to build' and the StatementIntro aria-label 'More space. Less building site.'. (2) Pinning — sticky stage rect top=0, height=900 at all sampled progress depths 0.03–0.92; header remained visible/functional in every screenshot. (3) Phase progression — titles change CONCEPT→DESIGN→BUILD→INTERIOR→COMPLETION with counters 01/05–05/05; scene visibly evolves per phase (blueprint outline+dimension lines → flat fills+swatch chips → gantry+wall panels sliding in → cutaway interior with roof lifted+downlights → finished facade+brand tick sweep+confetti blocks): screenshots bs-p1-start.png, bs-p1.png, bs-p2.png, bs-p3.png, bs-p4.png, bs-p5.png (all differ, verified visually). (4) Progress rail — right-edge vertical rail fills with scroll, passed nodes show ticks, current node shows its number; clicking node 2 scrolled to y=4056 = exact middle of phase 2's window (expected 4055.5), smooth via window.__lenis. (5) Scroll input — both mouse.wheel (Lenis-driven, 2975→3695) and lenis.scrollTo work. (6) Release — at y=7000 the stage scrolls off and the testimonials section enters cleanly (bs-release.png). (7) Scroll hint — visible at track start, faded by p=0.12. (8) Reduced motion — verified LIVE via emulateMedia (better than the code-grep the task suggested): stacked static panels, no sticky, Lenis disabled (bs-reduced-motion.png) — but see the hydration finding. (9) Mobile 390x844 — horizontal progress rail below header, dimmed scene backdrop with scrim, copy fully legible in lower third, StickyMobileCTA (Call / WhatsApp / Get A Quote) fixed at y=800 h=44 and hit-testable above the stage (bs-mobile-p3.png). (10) Console — zero errors attributable to BuildStory/StatementIntro/Lenis on the normal path (only the pre-existing favicon 404 + dev LCP warning, reported separately). All screenshots saved under C:\\Users\\info\\AppData\\Local\\Temp\\claude\\C--Users-info\\767f10ba-6bcb-4a70-8561-5ac51de8640f\\scratchpad\\.",
+  "file": "docs/BUILD-STORY-SPEC.md"
+ }
+]

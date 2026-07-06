@@ -1,6 +1,8 @@
 'use client'
 
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+
+import { useReducedMotionSafe } from '@/components/ui/useReducedMotionSafe'
 import { SITE } from '@/lib/site'
 
 /**
@@ -10,7 +12,9 @@ import { SITE } from '@/lib/site'
  * disabled for prefers-reduced-motion.
  */
 export function WhatsAppFloat() {
-  const reducedMotion = useReducedMotion()
+  // Hydration-safe: false on SSR + first client render, flips post-mount
+  // (the pulse ring span must exist in the first client tree to hydrate).
+  const reducedMotion = useReducedMotionSafe()
 
   return (
     <div className="fixed right-6 bottom-6 z-40 hidden md:block">

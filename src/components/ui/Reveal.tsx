@@ -1,7 +1,9 @@
 'use client'
 
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
+
+import { useReducedMotionSafe } from './useReducedMotionSafe'
 
 type RevealProps = {
   children: ReactNode
@@ -19,7 +21,9 @@ type RevealProps = {
  * a row of cards by passing incremental `delay` values (e.g. i * 0.1).
  */
 export function Reveal({ children, delay = 0, duration = 0.7, y = 24, className }: RevealProps) {
-  const reducedMotion = useReducedMotion()
+  // Hydration-safe: false on SSR + first client render (matching the server
+  // HTML), flips post-mount so reduced-motion users swap to the plain tree.
+  const reducedMotion = useReducedMotionSafe()
 
   if (reducedMotion) {
     return <div className={className}>{children}</div>

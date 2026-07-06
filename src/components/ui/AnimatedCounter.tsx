@@ -1,6 +1,6 @@
 'use client'
 
-import { animate, useInView, useReducedMotion } from 'motion/react'
+import { animate, useInView } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
 type AnimatedCounterProps = {
@@ -29,20 +29,26 @@ export function AnimatedCounter({
 }: AnimatedCounterProps) {
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref, { once: true, margin: '0px 0px -10% 0px' })
-  const reducedMotion = useReducedMotion()
   const [display, setDisplay] = useState(0)
 
+  // Reduced motion is only consulted post-mount (inside the effect): the SSR
+  // HTML and the first client render both show 0, so the tree always
+  // hydrates cleanly; reduced-motion users then jump straight to the value.
   useEffect(() => {
-    if (!inView || reducedMotion) return
+    if (!inView) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplay(value)
+      return
+    }
     const controls = animate(0, value, {
       duration,
       ease: [0.16, 1, 0.3, 1],
       onUpdate: (latest) => setDisplay(Math.round(latest)),
     })
     return () => controls.stop()
-  }, [inView, reducedMotion, value, duration])
+  }, [inView, value, duration])
 
-  const shown = reducedMotion ? value : display
+  const shown = display
 
   return (
     <span ref={ref} className={className}>

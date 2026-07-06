@@ -7,10 +7,11 @@
  */
 
 import Image from 'next/image'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useId, useState } from 'react'
 
 import { QuoteCTA } from '@/components/ui/QuoteCTA'
+import { useReducedMotionSafe } from '@/components/ui/useReducedMotionSafe'
 
 export type UseCaseTab = {
   label: string
@@ -27,7 +28,8 @@ type UseCaseTabsProps = {
 
 export function UseCaseTabs({ tabs }: UseCaseTabsProps) {
   const [active, setActive] = useState(0)
-  const reducedMotion = useReducedMotion()
+  // Hydration-safe: false on SSR + first client render, flips post-mount.
+  const reducedMotion = useReducedMotionSafe()
   const baseId = useId()
 
   if (tabs.length === 0) return null

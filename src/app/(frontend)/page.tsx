@@ -1,8 +1,8 @@
 /**
  * Home — the site's showpiece. Composition:
  * Hero + StatsBar → award trust strip → "Hire EazyBase" intro → use-case tabs
- * → 5-step process excerpt → featured testimonials → gallery teaser →
- * parallax break → CTA band. All copy is read from the seeded CMS home page
+ * → statement intro + Build Story (pinned scroll-scrubbed 5-phase narrative)
+ * → featured testimonials → gallery teaser → parallax break → CTA band. All copy is read from the seeded CMS home page
  * and carries data-eb-edit attributes for the visual editor.
  */
 
@@ -14,7 +14,8 @@ import { StatsBar } from '@/components/hero/StatsBar'
 import { AwardStrip } from '@/components/home/AwardStrip'
 import { GalleryTeaser } from '@/components/home/GalleryTeaser'
 import { HomeIntro } from '@/components/home/HomeIntro'
-import { ProcessStrip } from '@/components/home/ProcessStrip'
+import { BuildStory } from '@/components/home/build-story/BuildStory'
+import { StatementIntro } from '@/components/home/build-story/StatementIntro'
 import { TestimonialStrip } from '@/components/home/TestimonialStrip'
 import { UseCaseTabs, type UseCaseTab } from '@/components/home/UseCaseTabs'
 import { galleryImage, mediaURL, pickByAlt, resolveMedia } from '@/components/home/media'
@@ -161,8 +162,14 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      {/* 5 — Process excerpt (static; the scroll timeline lives on /what-we-do) */}
-      {process ? <ProcessStrip block={process.block} editBase={editBase(process.index)} /> : null}
+      {/* 5 — Build Story: statement title card + the pinned scroll-scrubbed
+             five-phase build narrative (the site's scroll signature) */}
+      {process ? (
+        <>
+          <StatementIntro />
+          <BuildStory block={process.block} editBase={editBase(process.index)} />
+        </>
+      ) : null}
 
       {/* 6 — Featured testimonials */}
       <TestimonialStrip

@@ -1,9 +1,11 @@
 'use client'
 
 import Image from 'next/image'
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { motion, useScroll, useTransform } from 'motion/react'
 import { useRef } from 'react'
 import type { ReactNode } from 'react'
+
+import { useReducedMotionSafe } from './useReducedMotionSafe'
 
 type ParallaxSectionProps = {
   /** Background image (public path or imported asset URL). */
@@ -29,7 +31,8 @@ export function ParallaxSection({
   className = '',
 }: ParallaxSectionProps) {
   const ref = useRef<HTMLElement>(null)
-  const reducedMotion = useReducedMotion()
+  // Hydration-safe: false on SSR + first client render, flips post-mount.
+  const reducedMotion = useReducedMotionSafe()
 
   const { scrollYProgress } = useScroll({
     target: ref,
