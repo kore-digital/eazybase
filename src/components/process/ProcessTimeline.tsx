@@ -72,7 +72,7 @@ export function ProcessTimeline({ steps, className = '' }: ProcessTimelineProps)
               className="absolute top-0 left-5 z-10 -translate-x-1/2 md:static md:translate-x-0 md:justify-self-center"
             >
               <span className="grid h-10 w-10 -skew-x-[18deg] place-items-center bg-brand-500 shadow-md shadow-brand-500/30 sm:h-12 sm:w-12">
-                <span className="skew-x-[18deg] font-display text-lg font-bold text-white sm:text-xl">
+                <span className="skew-x-[18deg] font-display text-lg font-bold text-ink-950 sm:text-xl">
                   {i + 1}
                 </span>
               </span>

@@ -132,7 +132,7 @@ export function GalleryGrid({ images, className = '' }: { images: GalleryImage[]
                   aria-hidden="true"
                   className="absolute right-3 bottom-3 flex h-9 w-9 -skew-x-[18deg] items-center justify-center rounded-sm bg-brand-500 opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100"
                 >
-                  <svg viewBox="0 0 20 20" className="h-4 w-4 skew-x-[18deg] text-white">
+                  <svg viewBox="0 0 20 20" className="h-4 w-4 skew-x-[18deg] text-ink-950">
                     <path
                       d="M8.5 3a5.5 5.5 0 1 0 3.4 9.83l3.63 3.64a1 1 0 0 0 1.42-1.42l-3.64-3.63A5.5 5.5 0 0 0 8.5 3Zm-3.5 5.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0Z"
                       fill="currentColor"

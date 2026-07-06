@@ -43,7 +43,7 @@ export function ProcessStrip({ block, editBase }: ProcessStripProps) {
               <Reveal delay={i * 0.08}>
                 <span
                   aria-hidden="true"
-                  className="relative z-10 inline-flex h-10 w-12 -skew-x-[18deg] items-center justify-center bg-brand-500 font-display text-base font-bold text-white shadow-sm"
+                  className="relative z-10 inline-flex h-10 w-12 -skew-x-[18deg] items-center justify-center bg-brand-500 font-display text-base font-bold text-ink-950 shadow-sm"
                 >
                   <span className="skew-x-[18deg]">{i + 1}</span>
                 </span>

@@ -39,9 +39,17 @@ export function CTABand({
         ].join(' ')}
       />
       <div className="eb-container flex flex-col items-center gap-6 py-16 text-center md:py-20">
-        <h2 className="max-w-2xl text-3xl font-semibold text-white sm:text-4xl">{heading}</h2>
+        {/* White on brand-500 is ~2.1:1 — the green band uses near-black ink. */}
+        <h2
+          className={[
+            'max-w-2xl text-3xl font-semibold sm:text-4xl',
+            dark ? 'text-white' : 'text-ink-950',
+          ].join(' ')}
+        >
+          {heading}
+        </h2>
         {sub ? (
-          <p className={['max-w-xl text-base sm:text-lg', dark ? 'text-ink-300' : 'text-brand-50'].join(' ')}>
+          <p className={['max-w-xl text-base sm:text-lg', dark ? 'text-ink-300' : 'text-ink-900/80'].join(' ')}>
             {sub}
           </p>
         ) : null}
@@ -52,8 +60,8 @@ export function CTABand({
           <a
             href={telHref(SITE.phone)}
             className={[
-              'font-display text-lg font-semibold tracking-wide text-white transition-colors',
-              dark ? 'hover:text-brand-400' : 'hover:text-ink-900',
+              'font-display text-lg font-semibold tracking-wide transition-colors',
+              dark ? 'text-white hover:text-brand-400' : 'text-ink-950 hover:text-white',
             ].join(' ')}
           >
             or call {formatPhone(SITE.phone)}
