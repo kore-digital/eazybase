@@ -7,10 +7,12 @@ import { submitQuoteRequest, type QuoteActionState } from '@/app/(frontend)/acti
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
 import {
   EXTENSION_TYPES,
+  PROPERTY_TYPES,
   SIZE_BOUNDS,
   SPEC_LEVELS,
   estimateRange,
   type ExtensionTypeKey,
+  type PropertyTypeKey,
   type SpecKey,
 } from '@/components/quote/pricing'
 import { SuccessPanel } from '@/components/quote/SuccessPanel'
@@ -28,9 +30,9 @@ import { formatPhone, telHref } from '@/lib/format'
  * The figure is ALWAYS presented as indicative, never as a formal quote.
  */
 
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3 | 4 | 5
 
-const STEP_LABELS = ['Type', 'Size', 'Spec'] as const
+const STEP_LABELS = ['Type', 'Size', 'Spec', 'Property'] as const
 
 const inputClass =
   'w-full rounded-lg border border-ink-200 bg-white px-4 py-3 text-ink-800 placeholder:text-ink-300 transition-[box-shadow,border-color] duration-200 outline-none hover:border-ink-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25'
@@ -40,6 +42,31 @@ const labelClass = 'mb-1.5 block font-display text-sm font-semibold text-ink-800
 const formatGBP = (n: number) => `£${n.toLocaleString('en-GB')}`
 
 const initialQuoteState: QuoteActionState = { status: 'idle' }
+
+/**
+ * Small house glyphs for the property-type cards, drawn in the same angled
+ * block language as TypeIcon (a green skewed plinth + a simple ink roofline).
+ * Decorative — the cards carry their own text labels.
+ */
+function PropertyIcon({ type, className }: { type: PropertyTypeKey; className?: string }) {
+  const GREEN = 'var(--color-brand-500)'
+  const INK = 'var(--color-ink-700)'
+  const roof: Record<PropertyTypeKey, React.ReactNode> = {
+    detached: <path d="M14 20 24 12 34 20 34 30 14 30 Z" />,
+    semi: <path d="M8 20 18 13 28 20 28 30 8 30 Z M28 22 34 17 40 22 40 30 28 30 Z" />,
+    terraced: <path d="M6 21 13 16 20 21 20 30 6 30 Z M20 21 27 16 34 21 34 30 20 30 Z M34 21 41 16 44 18 44 30 34 30 Z" />,
+    bungalow: <path d="M8 24 24 15 40 24 40 30 8 30 Z" />,
+    flat: <path d="M15 10 33 10 33 30 15 30 Z M19 14 22 14 22 17 19 17 Z M26 14 29 14 29 17 26 17 Z M19 20 22 20 22 23 19 23 Z M26 20 29 20 29 23 26 23 Z" />,
+  }
+  return (
+    <svg viewBox="0 0 48 40" className={className} fill="none" aria-hidden="true">
+      <path d="M8 36 12 30 40 30 36 36 Z" fill={GREEN} />
+      <g fill="none" stroke={INK} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round">
+        {roof[type]}
+      </g>
+    </svg>
+  )
+}
 
 /** Inline field error, announced to screen readers and referenced by the input. */
 function FieldError({ id, message }: { id: string; message?: string }) {
@@ -105,6 +132,7 @@ export function InstantQuoteWizard() {
   const [widthM, setWidthM] = useState<number>(SIZE_BOUNDS.defaultWidth)
   const [depthM, setDepthM] = useState<number>(SIZE_BOUNDS.defaultDepth)
   const [specKey, setSpecKey] = useState<SpecKey | null>(null)
+  const [propertyKey, setPropertyKey] = useState<PropertyTypeKey | null>(null)
 
   const [state, formAction, isPending] = useActionState<QuoteActionState, FormData>(
     submitQuoteRequest,
@@ -342,8 +370,60 @@ export function InstantQuoteWizard() {
             </motion.div>
           ) : null}
 
-          {/* --------------------------------------- step 4: result + lead */}
-          {step === 4 && range && chosenType && chosenSpec ? (
+          {/* -------------------------------------- step 4: property type */}
+          {step === 4 ? (
+            <motion.div key="step-property" {...slide}>
+              <h2
+                ref={focusStepHeading}
+                tabIndex={-1}
+                className="text-center font-display text-xl font-semibold text-ink-900 outline-none"
+              >
+                Last one — what type of property is it?
+              </h2>
+              <p className="mt-2 text-center text-sm text-ink-500">
+                It helps us plan access and groundwork. It won’t change your estimate.
+              </p>
+              <div className="mx-auto mt-6 grid max-w-lg grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+                {PROPERTY_TYPES.map((p) => {
+                  const selected = propertyKey === p.key
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => {
+                        setPropertyKey(p.key)
+                        go(5)
+                      }}
+                      className={[
+                        'group rounded-xl border-2 bg-white p-4 text-center transition-all duration-200',
+                        'hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-md',
+                        'focus-visible:ring-4 focus-visible:ring-brand-500/30 focus-visible:outline-none',
+                        selected ? 'border-brand-500 shadow-md' : 'border-ink-100',
+                      ].join(' ')}
+                    >
+                      <PropertyIcon type={p.key} className="mx-auto h-10 w-12" />
+                      <span className="mt-2 block font-display text-sm font-semibold text-ink-900">
+                        {p.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="mt-8 text-center">
+                <button
+                  type="button"
+                  onClick={() => go(3)}
+                  className="text-sm font-semibold text-ink-500 underline-offset-4 hover:text-ink-800 hover:underline"
+                >
+                  ← Back
+                </button>
+              </div>
+            </motion.div>
+          ) : null}
+
+          {/* --------------------------------------- step 5: result + lead */}
+          {step === 5 && range && chosenType && chosenSpec ? (
             <motion.div key="step-4" {...slide}>
               {/* Indicative range */}
               <div className="rounded-xl bg-ink-900 px-6 py-10 text-center text-white">
@@ -404,6 +484,9 @@ export function InstantQuoteWizard() {
                   <input type="hidden" name="estimatorSpec" value={chosenSpec.key} />
                   <input type="hidden" name="estimatorWidthM" value={widthM} />
                   <input type="hidden" name="estimatorDepthM" value={depthM} />
+                  {propertyKey ? (
+                    <input type="hidden" name="propertyType" value={propertyKey} />
+                  ) : null}
 
                   {/* Honeypot */}
                   <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
@@ -474,7 +557,7 @@ export function InstantQuoteWizard() {
                         required
                         autoComplete="tel"
                         inputMode="tel"
-                        pattern="^(\+44|0)[\d\s().-]{9,14}$"
+                        pattern="^(\+44|0)[\d\s\(\).-]{9,14}$"
                         title="A UK phone number, starting 0 or +44"
                         defaultValue={state.values?.phone}
                         aria-invalid={state.fieldErrors?.phone ? true : undefined}

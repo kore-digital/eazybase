@@ -156,7 +156,9 @@ export function QuoteForm() {
             autoComplete="tel"
             inputMode="tel"
             // UK numbers: 0… or +44…, allowing spaces/dashes/brackets.
-            pattern="^(\+44|0)[\d\s().-]{9,14}$"
+            // Parens are escaped: the browser parses `pattern` with the RegExp
+            // `v` flag, under which unescaped ( ) inside a character class throw.
+            pattern="^(\+44|0)[\d\s\(\).-]{9,14}$"
             title="A UK phone number, starting 0 or +44"
             defaultValue={values.phone}
             aria-invalid={errors.phone ? true : undefined}
