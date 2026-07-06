@@ -29,7 +29,7 @@ export async function Dashboard() {
       payload.find({ collection: 'quote-requests', limit: 5, sort: '-createdAt', depth: 0 }),
     ])
 
-  const firstName = (user?.name as string | undefined)?.split(' ')[0] ?? 'there'
+  const firstName = (user?.name as string | undefined)?.trim().split(' ')[0] || 'there'
 
   const tiles = [
     { num: totalPages.totalDocs, label: 'Total pages' },
@@ -55,7 +55,7 @@ export async function Dashboard() {
       <h2 className={styles.sectionTitle}>Your pages</h2>
       <div className={styles.cards}>
         {pagesResult.docs.map((page) => {
-          const slug = String(page.slug)
+          const slug = page.slug ? String(page.slug) : ''
           const thumb = firstImageUrl(page.sections)
           return (
             <div key={String(page.id)} className={styles.card}>
@@ -68,14 +68,16 @@ export async function Dashboard() {
                   <a className="btn btn--size-small btn--style-secondary" href={`/admin/collections/pages/${page.id}`}>
                     Edit content
                   </a>
-                  <a
-                    className="btn btn--size-small btn--style-primary"
-                    href={liveEditUrlForPage(slug)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Edit live
-                  </a>
+                  {slug ? (
+                    <a
+                      className="btn btn--size-small btn--style-primary"
+                      href={liveEditUrlForPage(slug)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Edit live
+                    </a>
+                  ) : null}
                 </div>
               </div>
             </div>

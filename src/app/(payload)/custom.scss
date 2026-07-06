@@ -5,9 +5,8 @@
   color: #1e1f1d;
 }
 
-/* Hide the stock dashboard content; our custom dashboard (Task 4) renders
-   above it via beforeDashboard. Scoped to the dashboard view only. */
-.dashboard .dashboard__group,
-.dashboard > .dashboard__label {
+/* Hide the stock modular dashboard; our custom dashboard renders above it
+   via beforeDashboard. Scoped to the dashboard view only. */
+.dashboard .modular-dashboard {
   display: none;
 }
