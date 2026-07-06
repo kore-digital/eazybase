@@ -69,10 +69,13 @@ export function Header({ phone, navItems }: HeaderProps = {}) {
   const areasTriggerRef = useRef<HTMLAnchorElement>(null)
 
   // CMS-driven nav with the hardcoded NAV as fallback; the /areas item keeps
-  // its mega-dropdown regardless of source.
-  const nav: NavItem[] = navItems?.length
+  // its mega-dropdown regardless of source. The "Get A Quote" destination is
+  // dropped here because the primary CTA button already covers it — keeping it
+  // in the link row is redundant and pushes the menu onto two lines.
+  const nav: NavItem[] = (navItems?.length
     ? navItems.map((item) => ({ label: item.label, href: item.href, hasAreas: item.href === '/areas' }))
     : NAV
+  ).filter((item) => item.href !== '/get-a-quote')
   const phoneNumber = phone?.trim() || SITE.phone
 
   // Close the mobile menu on route change; lock body scroll while open.
@@ -131,7 +134,7 @@ export function Header({ phone, navItems }: HeaderProps = {}) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-ink-100 bg-white/85 backdrop-blur-md">
-      <div className="eb-container flex h-18 items-center justify-between gap-6">
+      <div className="eb-container flex h-18 items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center" aria-label="EazyBase — home">
           <Image
@@ -189,7 +192,7 @@ export function Header({ phone, navItems }: HeaderProps = {}) {
                     href={item.href}
                     aria-current={active ? 'page' : undefined}
                     className={[
-                      'relative inline-flex items-center gap-1 px-3 py-2 font-display text-sm font-semibold tracking-wide uppercase transition-colors',
+                      'relative inline-flex items-center gap-1 px-3 py-2 font-display text-sm font-semibold tracking-wide whitespace-nowrap uppercase transition-colors',
                       active ? 'text-brand-600' : 'text-ink-800 hover:text-ink-950',
                     ].join(' ')}
                     onFocus={() => {
@@ -273,10 +276,10 @@ export function Header({ phone, navItems }: HeaderProps = {}) {
         </nav>
 
         {/* Right: phone + quote */}
-        <div className="hidden items-center gap-5 lg:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           <a
             href={telHref(phoneNumber)}
-            className="group inline-flex items-center gap-2 font-display text-sm font-semibold tracking-wide text-ink-800 transition-colors hover:text-brand-600"
+            className="group inline-flex items-center gap-2 font-display text-sm font-semibold whitespace-nowrap tracking-wide text-ink-800 transition-colors hover:text-brand-600"
           >
             <PhoneIcon className="h-4 w-4 text-brand-600 transition-transform duration-200 group-hover:-rotate-12" />
             {formatPhone(phoneNumber)}
