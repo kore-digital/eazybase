@@ -1,7 +1,7 @@
 'use server'
 
 import config from '@payload-config'
-import { updateTag } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 
@@ -50,10 +50,11 @@ export async function revalidateContent(tags: string[]): Promise<RevalidateResul
       (tag) => typeof tag === 'string' && (ALLOWED_TAGS.has(tag) || SLUG_TAG_RE.test(tag)),
     )
 
-    // updateTag (Next 16) expires the tag immediately with read-your-own-writes
-    // semantics — exactly what the editor needs before router.refresh().
+    // revalidateTag marks each tag stale so the unstable_cache lookups
+    // regenerate on the next render — the client calls router.refresh()
+    // immediately after, which triggers that render.
     for (const tag of valid) {
-      updateTag(tag)
+      revalidateTag(tag)
     }
 
     return { ok: true, revalidated: valid }

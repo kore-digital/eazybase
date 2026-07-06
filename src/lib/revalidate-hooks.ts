@@ -14,14 +14,14 @@ import type {
 /**
  * revalidateTag throws outside a Next.js request scope (e.g. `payload run`
  * seed/fix scripts) — cache freshness is moot there, so swallow the error.
- * The 'max' profile (required 2nd arg in Next 16) expires the tag outright;
- * unlike updateTag it is also callable from Payload's REST route handlers.
+ * It expires the tag outright and is callable from Payload's REST route
+ * handlers (unlike the request-scoped updateTag).
  */
 const safeRevalidate = (tags: (string | undefined)[]) => {
   for (const tag of tags) {
     if (!tag) continue
     try {
-      revalidateTag(tag, 'max')
+      revalidateTag(tag)
     } catch {
       /* non-Next context (payload run script) — nothing to revalidate */
     }
