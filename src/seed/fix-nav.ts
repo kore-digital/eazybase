@@ -18,7 +18,6 @@ await payload.updateGlobal({
       { label: 'Gallery', href: '/gallery' },
       { label: 'Areas', href: '/areas' },
       { label: 'FAQ', href: '/faq' },
-      { label: 'Social', href: '/social' },
     ],
   },
 })

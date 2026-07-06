@@ -264,7 +264,8 @@ async function seedGlobals(payload: Payload) {
       slug: 'navigation',
       data: {
         // No "Get a Quote" here — the header's primary CTA button covers it,
-        // and a duplicate link crowds the menu onto two rows.
+        // and a duplicate link crowds the menu onto two rows. Social lives in
+        // the footer only.
         mainNav: [
           { label: 'Home', href: '/' },
           { label: 'About Us', href: '/about-us' },
@@ -272,7 +273,6 @@ async function seedGlobals(payload: Payload) {
           { label: 'Gallery', href: '/gallery' },
           { label: 'Areas', href: '/areas' },
           { label: 'FAQ', href: '/faq' },
-          { label: 'Social', href: '/social' },
         ],
         footerNav: [
           { label: 'About Us', href: '/about-us' },
