@@ -42,7 +42,20 @@ function Laurel({ className }: { className?: string }) {
   )
 }
 
-export function Hero() {
+export type HeroProps = {
+  heading?: string
+  sub?: string
+  /** data-eb-edit paths so the visual editor can bind the CMS fields */
+  editHeading?: string
+  editSub?: string
+}
+
+export function Hero({
+  heading = 'Get a Modular Home Extension',
+  sub = 'Creating more space for what matters.',
+  editHeading,
+  editSub,
+}: HeroProps = {}) {
   return (
     <section className="relative overflow-hidden bg-ink-950 text-white">
       {/* Subtle blueprint grid */}
@@ -76,13 +89,18 @@ export function Hero() {
           </Reveal>
 
           <Reveal delay={0.25}>
-            <h1 className="mt-5 text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-[3.4rem]">
-              Get a Modular Home&nbsp;Extension
+            <h1
+              className="mt-5 text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-[3.4rem]"
+              data-eb-edit={editHeading}
+            >
+              {heading}
             </h1>
           </Reveal>
 
           <Reveal delay={0.4}>
-            <p className="mt-5 max-w-md text-lg text-ink-200">Creating more space for what matters.</p>
+            <p className="mt-5 max-w-md text-lg text-ink-200" data-eb-edit={editSub}>
+              {sub}
+            </p>
           </Reveal>
 
           <Reveal delay={0.55}>

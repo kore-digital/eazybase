@@ -118,7 +118,12 @@ export default async function HomePage() {
       />
 
       {/* 1 — Signature hero + stats (the only hero-level animation on the site) */}
-      <Hero />
+      <Hero
+        heading={page?.heroHeading ?? undefined}
+        sub={page?.heroSub ?? undefined}
+        editHeading={page ? `pages:${page.id}:heroHeading` : undefined}
+        editSub={page ? `pages:${page.id}:heroSub` : undefined}
+      />
       <StatsBar />
 
       {/* 2 — Award trust signal, near the fold */}
