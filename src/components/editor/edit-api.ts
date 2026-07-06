@@ -4,7 +4,12 @@
  *
  * Key convention (see docs/CMS-SCHEMA.md):
  *   data-eb-edit="<collection|global>:<docId>:<fieldPath>"
- *   e.g. "pages:3:heroHeading", "areas:7:faqs.0.a", "site-settings:1:tagline"
+ *   e.g. "pages:3:heroHeading", "areas:7:faqs.r_abc123.a", "site-settings:1:tagline"
+ *
+ * Array rows are addressed by their stable Payload row id (`r_<rowId>`),
+ * resolved to the row's current index against a freshly fetched document at
+ * save time, so edits survive admin-side reorders and deletes. Plain numeric
+ * indices (e.g. "faqs.0.a") remain supported as a legacy fallback.
  */
 
 const GLOBAL_SLUGS = new Set(['site-settings', 'navigation'])
@@ -54,12 +59,56 @@ export function setDeep(value: unknown, parts: string[], text: string): unknown 
   return obj
 }
 
+const ROW_ID_RE = /^r_(.+)$/
+
+/**
+ * Resolve row-id path segments (`r_<rowId>`) to the row's current numeric
+ * index by walking `value` (a freshly fetched top-level field). Payload array
+ * rows carry a stable `id`, so looking the row up at save time keeps the edit
+ * pointing at the right row even after admin-side reorders/deletes. Numeric
+ * and object-key segments pass through unchanged (legacy fallback).
+ *
+ * Throws when a referenced row no longer exists — better a visible failure
+ * than silently writing into a different row.
+ */
+export function resolveRowIds(value: unknown, parts: string[]): string[] {
+  const resolved: string[] = []
+  let current = value
+  for (const part of parts) {
+    const match = ROW_ID_RE.exec(part)
+    if (match) {
+      const rows = Array.isArray(current) ? current : []
+      const index = rows.findIndex(
+        (row) =>
+          row !== null && typeof row === 'object' && (row as { id?: unknown }).id === match[1],
+      )
+      if (index === -1) {
+        throw new Error('This row no longer exists in the CMS — refresh the page and try again.')
+      }
+      resolved.push(String(index))
+      current = rows[index]
+    } else {
+      resolved.push(part)
+      if (/^\d+$/.test(part)) {
+        current = Array.isArray(current) ? current[Number(part)] : undefined
+      } else {
+        current =
+          current !== null && typeof current === 'object' && !Array.isArray(current)
+            ? (current as Record<string, unknown>)[part]
+            : undefined
+      }
+    }
+  }
+  return resolved
+}
+
 /**
  * Persist a single text field through Payload REST.
  *
  * Top-level fields PATCH directly; dotted paths (array items / groups, e.g.
- * `sections.2.heading`, `faqs.0.a`) fetch the doc at depth 0, immutably set
- * the deep path, and PATCH the whole top-level field back. Globals use
+ * `sections.r_abc123.heading`, `faqs.0.a`) fetch the doc at depth 0, resolve
+ * any row-id segments to current indices, immutably set the deep path, and
+ * PATCH the whole top-level field back. Globals use
  * POST /api/globals/<slug> (Payload's global update verb).
  *
  * Returns the parsed JSON response (Payload wraps collections as { doc }).
@@ -78,7 +127,8 @@ export async function saveEditKey(
     const docRes = await fetch(`${base}?depth=0`, { credentials: 'include' })
     if (!docRes.ok) throw new Error(`Could not load document (${docRes.status})`)
     const doc = (await docRes.json()) as Record<string, unknown>
-    body = { [topKey]: setDeep(doc?.[topKey], rest, text) }
+    const parts = resolveRowIds(doc?.[topKey], rest)
+    body = { [topKey]: setDeep(doc?.[topKey], parts, text) }
   } else {
     body = { [parsed.fieldPath]: text }
   }

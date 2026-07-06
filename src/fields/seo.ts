@@ -16,7 +16,8 @@ export const seoField: Field = {
     {
       name: 'metaDescription',
       type: 'textarea',
-      maxLength: 170,
+      // ~155 chars is where Google truncates descriptions in SERPs.
+      maxLength: 155,
     },
   ],
 }

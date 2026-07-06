@@ -8,11 +8,12 @@
  *     dangerouslySetInnerHTML={{ __html: jsonLdScript(organization(), website()) }}
  *   />
  */
+import { BASE_URL } from '@/lib/base-url'
 import { SITE } from '@/lib/site'
 import type { Area } from '@/payload-types'
 
-const ORG_ID = `${SITE.domain}/#organization`
-const WEBSITE_ID = `${SITE.domain}/#website`
+const ORG_ID = `${BASE_URL}/#organization`
+const WEBSITE_ID = `${BASE_URL}/#website`
 
 type SchemaNode = Record<string, unknown>
 
@@ -23,8 +24,8 @@ export function organization(): SchemaNode {
     '@id': ORG_ID,
     name: SITE.name,
     legalName: SITE.legalName,
-    url: `${SITE.domain}/`,
-    logo: `${SITE.domain}/logo.png`,
+    url: `${BASE_URL}/`,
+    logo: `${BASE_URL}/logo.png`,
     telephone: SITE.phone,
     email: SITE.email,
     slogan: SITE.tagline,
@@ -44,7 +45,7 @@ export function website(): SchemaNode {
   return {
     '@type': 'WebSite',
     '@id': WEBSITE_ID,
-    url: `${SITE.domain}/`,
+    url: `${BASE_URL}/`,
     name: SITE.name,
     description: SITE.tagline,
     publisher: { '@id': ORG_ID },
@@ -53,18 +54,19 @@ export function website(): SchemaNode {
 
 /**
  * Local-service node for an area page: a HomeAndConstructionBusiness serving
- * the given town, provided by Eazybase Extensions Ltd in Blackburn.
+ * the given town, a branch of Eazybase Extensions Ltd in Blackburn (expressed
+ * via parentOrganization — `provider` is not a valid LocalBusiness property).
  */
 export function localBusinessService(area: Pick<Area, 'slug' | 'name' | 'seo' | 'isHub'>): SchemaNode {
   return {
     '@type': 'HomeAndConstructionBusiness',
-    '@id': `${SITE.domain}/areas/${area.slug}#localbusiness`,
+    '@id': `${BASE_URL}/areas/${area.slug}#localbusiness`,
     name: `${SITE.name} Modular Home Extensions — ${area.name}`,
     description:
       area.seo?.metaDescription ??
       `Factory-built modular home extensions for ${area.name}, built in Blackburn and installed on-site in under a week.`,
-    url: `${SITE.domain}/areas/${area.slug}`,
-    image: `${SITE.domain}/logo.png`,
+    url: `${BASE_URL}/areas/${area.slug}`,
+    image: `${BASE_URL}/logo.png`,
     telephone: SITE.phone,
     email: SITE.email,
     priceRange: '££',
@@ -72,7 +74,6 @@ export function localBusinessService(area: Pick<Area, 'slug' | 'name' | 'seo' | 
       '@type': area.isHub ? 'AdministrativeArea' : 'City',
       name: area.name,
     },
-    provider: { '@id': ORG_ID },
     parentOrganization: { '@id': ORG_ID },
     address: {
       '@type': 'PostalAddress',

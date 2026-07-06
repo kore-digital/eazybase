@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
 import { isAdminOrEditor } from '../access/roles'
+import { globalRevalidateHooks } from '../lib/revalidate-hooks'
 
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
@@ -10,6 +11,7 @@ export const SiteSettings: GlobalConfig = {
     read: () => true,
     update: isAdminOrEditor,
   },
+  hooks: globalRevalidateHooks('site-settings'),
   fields: [
     { name: 'phone', type: 'text', admin: { description: 'Display format, e.g. 0330 229 0775' } },
     {

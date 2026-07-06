@@ -80,8 +80,10 @@
     @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3.5 font-display text-sm font-semibold tracking-wide uppercase transition-colors duration-200;
   }
 
+  /* Dark text on the lime green: white on brand-500 is only ~2.1:1, so all
+     text-bearing brand-500 surfaces use near-black ink for AA contrast. */
   .eb-btn-primary {
-    @apply bg-brand-500 text-white hover:bg-brand-600;
+    @apply bg-brand-500 font-bold text-ink-950 hover:bg-brand-600;
   }
 
   .eb-btn-dark {
@@ -90,5 +92,46 @@
 
   .eb-btn-outline {
     @apply border-2 border-ink-900 text-ink-900 hover:bg-ink-900 hover:text-white;
+  }
+
+  /* Range slider with an explicit thumb: `appearance-none` suppresses the
+     native thumb in WebKit/Blink, so it must be recreated — a skewed brand
+     block (the logo motif), 28px, with a visible focus ring. */
+  .eb-range {
+    @apply h-2 w-full cursor-pointer appearance-none rounded-full bg-ink-100 outline-none;
+  }
+
+  .eb-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 1.75rem;
+    width: 1.75rem;
+    border-radius: 0.25rem;
+    border: 2px solid #fff;
+    background: var(--color-brand-500);
+    box-shadow: 0 1px 4px rgba(30, 31, 29, 0.35);
+    transform: skewX(-18deg);
+  }
+
+  .eb-range::-moz-range-thumb {
+    height: 1.75rem;
+    width: 1.75rem;
+    border-radius: 0.25rem;
+    border: 2px solid #fff;
+    background: var(--color-brand-500);
+    box-shadow: 0 1px 4px rgba(30, 31, 29, 0.35);
+    transform: skewX(-18deg);
+  }
+
+  .eb-range:focus-visible::-webkit-slider-thumb {
+    box-shadow:
+      0 0 0 4px rgba(150, 193, 31, 0.35),
+      0 1px 4px rgba(30, 31, 29, 0.35);
+  }
+
+  .eb-range:focus-visible::-moz-range-thumb {
+    box-shadow:
+      0 0 0 4px rgba(150, 193, 31, 0.35),
+      0 1px 4px rgba(30, 31, 29, 0.35);
   }
 }

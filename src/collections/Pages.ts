@@ -1,6 +1,7 @@
 import type { Block, CollectionConfig } from 'payload'
 
 import { isAdmin, isAdminOrEditor, publishedOrLoggedIn } from '../access/roles'
+import { collectionRevalidateHooks } from '../lib/revalidate-hooks'
 import { seoField } from '../fields/seo'
 
 /* ---------------------------------------------------------------------------
@@ -82,7 +83,14 @@ const StatsCountersBlock: Block = {
       minRows: 1,
       fields: [
         { name: 'value', type: 'number', required: true },
-        { name: 'suffix', type: 'text', admin: { description: 'e.g. "weeks", "days", "-year"' } },
+        {
+          name: 'suffix',
+          type: 'text',
+          admin: {
+            description:
+              'Rendered tight after the number — start word suffixes with a space, e.g. " weeks", " days", "-year".',
+          },
+        },
         { name: 'label', type: 'text', required: true },
       ],
     },
@@ -179,6 +187,7 @@ export const Pages: CollectionConfig = {
     update: isAdminOrEditor,
     delete: isAdmin,
   },
+  hooks: collectionRevalidateHooks(['pages'], (doc) => (doc?.slug ? `page-${doc.slug}` : undefined)),
   fields: [
     {
       name: 'slug',

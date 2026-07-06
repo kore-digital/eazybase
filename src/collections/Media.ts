@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url'
 import type { CollectionConfig } from 'payload'
 
 import { isAdminOrEditor } from '../access/roles'
+import { collectionRevalidateHooks } from '../lib/revalidate-hooks'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -19,6 +20,8 @@ export const Media: CollectionConfig = {
     update: isAdminOrEditor,
     delete: isAdminOrEditor,
   },
+  // Media has no tag of its own — it is embedded (depth > 0) in these caches.
+  hooks: collectionRevalidateHooks(['pages', 'areas', 'gallery-items', 'awards']),
   upload: {
     // repo-root ./media — gitignored
     staticDir: path.resolve(dirname, '../../media'),

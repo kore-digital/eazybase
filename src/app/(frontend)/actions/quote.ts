@@ -1,7 +1,7 @@
 'use server'
 
 import { getPayloadClient } from '@/lib/data'
-import { estimateRange, getExtensionType, getSpec } from '@/components/quote/pricing'
+import { clampMetres, estimateRange, getExtensionType, getSpec } from '@/components/quote/pricing'
 
 /**
  * Shared server action for both conversion forms:
@@ -29,8 +29,19 @@ export type QuoteActionState = {
 /* ------------------------------------------------------------- validators */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-// UK numbers: 0xxxxxxxxxx (10–11 digits) or +44 followed by 9–10 digits.
-const UK_PHONE_RE = /^(?:\+44\d{9,10}|0\d{9,10})$/
+// UK numbers, after normalisation: 0xxxxxxxxxx (10–11 digits) or +44 followed by 9–10 digits.
+const UK_PHONE_RE = /^(\+44|0)\d{9,10}$/
+/**
+ * Normalise a phone number the same way the tel inputs accept it
+ * (pattern ^(\+44|0)[\d\s().-]{9,14}$): strip spaces/dots/dashes, drop a
+ * parenthesised trunk zero after +44 ('+44(0)7845 655113' → '+447845655113'),
+ * then strip any remaining parentheses.
+ */
+const normalisePhone = (raw: string): string =>
+  raw
+    .replace(/[\s.-]/g, '')
+    .replace(/^\+44\(0\)/, '+44')
+    .replace(/[()]/g, '')
 // UK postcode, outward + inward, case-insensitive, optional space.
 const UK_POSTCODE_RE = /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$/
 
@@ -88,7 +99,7 @@ export async function submitQuoteRequest(
     fieldErrors.email = 'That email address doesn’t look quite right.'
   }
 
-  const phoneDigits = values.phone.replace(/[\s().-]/g, '')
+  const phoneDigits = normalisePhone(values.phone)
   if (!values.phone) {
     fieldErrors.phone = 'Please enter a phone number.'
   } else if (!UK_PHONE_RE.test(phoneDigits)) {
@@ -123,12 +134,16 @@ export async function submitQuoteRequest(
     const extType = getExtensionType(typeKey)
     const spec = getSpec(specKey)
     if (extType && spec && Number.isFinite(widthM) && Number.isFinite(depthM)) {
-      // Recompute server-side from the raw inputs — never trust client £ figures.
-      const range = estimateRange(extType.key, spec.key, widthM, depthM)
+      // Recompute server-side — never trust client £ figures. Store the SAME
+      // clamped dimensions the estimate is computed from, so a tampered POST
+      // can't persist dimensions that contradict the stored range.
+      const width = clampMetres(widthM)
+      const depth = clampMetres(depthM)
+      const range = estimateRange(extType.key, spec.key, width, depth)
       estimator = {
         extensionType: extType.label,
-        widthM,
-        depthM,
+        widthM: width,
+        depthM: depth,
         spec: spec.label,
         estimateLow: range.low,
         estimateHigh: range.high,

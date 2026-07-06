@@ -131,7 +131,7 @@ const FAQ_ROWS: { q: string; a: string }[] = [
   },
   {
     q: 'Do I need planning permission?',
-    a: 'As a general rule, no! Most extensions are allowed under permitted development rules. A rough guide is that houses up to and including semi-detached properties can extend for a 3-meter projection or 4 meters for detached homes. This simplifies the process and it gives you an idea but our technician that carries out the quote will go into more detail with you on what is needed to start the build.',
+    a: 'As a general rule, no! Most extensions are allowed under permitted development rules. A rough guide is that houses up to and including semi-detached properties can extend for a 3-metre projection or 4 metres for detached homes. This simplifies the process and it gives you an idea but our technician that carries out the quote will go into more detail with you on what is needed to start the build.',
   },
   {
     q: 'Why are your extensions quicker to build?',
@@ -313,8 +313,9 @@ async function seedPages(payload: Payload, mediaIds: Record<string, number | str
     blockType: 'statsCounters' as const,
     heading: 'Factory-built speed, without the compromise',
     stats: [
-      { value: SITE.stats.factoryWeeks, suffix: 'weeks', label: 'Factory build, in as little as' },
-      { value: SITE.stats.installDays, suffix: 'days', label: 'Installed on-site in under' },
+      // Leading space in word suffixes — the counters render {value}{suffix} tight.
+      { value: SITE.stats.factoryWeeks, suffix: ' weeks', label: 'Factory build, in as little as' },
+      { value: SITE.stats.installDays, suffix: ' days', label: 'Installed on-site in under' },
       { value: SITE.stats.guaranteeYears, suffix: '-year', label: 'Guarantee on roofing, up to' },
     ],
   }
@@ -334,7 +335,7 @@ async function seedPages(payload: Payload, mediaIds: Record<string, number | str
       seo: {
         metaTitle: 'Affordable Modular Home Extensions | EazyBase Prefab Extensions UK',
         metaDescription:
-          'Affordable prefabricated modular home extensions designed, built and installed by EazyBase. Factory-built in as little as 4 weeks, installed in under a week.',
+          'Affordable prefab modular home extensions designed, built and installed by EazyBase. Factory-built in as little as 4 weeks, installed in under a week.',
       },
       sections: [
         {
@@ -417,7 +418,7 @@ async function seedPages(payload: Payload, mediaIds: Record<string, number | str
       seo: {
         metaTitle: 'About Us | EazyBase Modular Home Extensions',
         metaDescription:
-          'Meet the EazyBase team — experienced, fully insured and highly trained. We design, factory-build and install quality modular home extensions at affordable prices.',
+          'Meet the EazyBase team — experienced, fully insured and highly trained. We design, factory-build and install modular home extensions at affordable prices.',
       },
       sections: [
         {

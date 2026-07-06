@@ -45,12 +45,14 @@ export function BeforeAfter({
       <Image src={afterSrc} alt={afterAlt} fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
 
       {/* Before (clipped from the right) */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0"
-        style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
-      >
-        <Image src={beforeSrc} alt="" fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
+      <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
+        <Image
+          src={beforeSrc}
+          alt={beforeAlt}
+          fill
+          sizes="(min-width: 768px) 50vw, 100vw"
+          className="object-cover"
+        />
       </div>
 
       {/* Divider + parallelogram grip */}
@@ -74,7 +76,7 @@ export function BeforeAfter({
       </span>
       <span
         aria-hidden="true"
-        className="absolute top-3 right-3 z-10 rounded-sm bg-brand-500/90 px-2 py-1 font-display text-[11px] font-semibold tracking-[0.15em] text-white uppercase"
+        className="absolute top-3 right-3 z-10 rounded-sm bg-brand-500/90 px-2 py-1 font-display text-[11px] font-semibold tracking-[0.15em] text-ink-950 uppercase"
       >
         After
       </span>

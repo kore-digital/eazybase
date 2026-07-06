@@ -1,0 +1,617 @@
+[
+ {
+  "title": "images.localPatterns blocks the header logo — /logo.png returns 400 on every page",
+  "file": "next.config.ts",
+  "line": 35,
+  "severity": "critical",
+  "detail": "next.config.ts defines images.localPatterns with a single pattern '/api/media/file/**'. In Next.js, once localPatterns is defined, ALL other local image paths are rejected by the image optimizer with 400 Bad Request. Header.tsx line 78 renders the site logo via next/image with src=\"/logo.png\" (public/logo.png), which does not match the pattern. Result: on every page, the /_next/image request for the logo fails with 400 and the header shows a broken image / alt text instead of the brand mark. tsc and the production build cannot catch this — it only appears at request time.",
+  "suggestedFix": "Add a second local pattern for public assets (e.g. { pathname: '/logo.png' } or { pathname: '/**', search: '' } plus keep the media one), or render the logo with a plain <img>.",
+  "dimension": 0,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by tracing the full path: next.config.ts:34-40 defines images.localPatterns with only '/api/media/file/**' (no unoptimized, no custom loader). Header.tsx:77-84 renders next/image with src=\"/logo.png\" (public/logo.png exists) and Header is in the (frontend) root layout, so it renders on every page. Installed Next 16.2.6 source confirms the semantics: match-local-pattern.js hasLocalMatch() only permits all local paths when localPatterns is undefined — once defined, non-matching srcs fail; image-optimizer.js:573-577 then returns '\"url\" parameter is not allowed' → 400 for /_next/image?url=%2Flogo.png. No fallback or bypass exists (string src always hits the optimizer; Footer intentionally uses text, masking nothing). Severity adjusted from critical to major: the header shows a broken image/alt text site-wide — a serious brand-visibility defect on a lead-gen site — but no functionality (nav, quote form, CTAs) is broken and there is no crash/data loss.",
+   "severityAdjustment": "major"
+  }
+ },
+ {
+  "title": "jsonLdScript() injects unescaped CMS text into <script> — broken page / stored XSS via area SEO description or area FAQ text",
+  "file": "src/lib/jsonld.ts",
+  "line": 105,
+  "severity": "major",
+  "detail": "jsonLdScript() returns plain JSON.stringify output with no '<' escaping, and area pages inject it via dangerouslySetInnerHTML (src/app/(frontend)/areas/[slug]/page.tsx lines 102-105). localBusinessService() embeds area.seo.metaDescription and faqPage() embeds area FAQ q/a — all editor-controlled CMS strings. If an editor types '</script>' (or pastes content containing it) into an area FAQ answer or meta description, the string terminates the JSON-LD script tag mid-document, breaking the page HTML and allowing arbitrary markup/script injection for all visitors. Notably the site FAQ page (src/app/(frontend)/faq/page.tsx line 41) already does the correct .replace(/</g, '\\\\u003c') — jsonLdScript was built without the same guard, so the two concurrently-built paths diverge.",
+  "suggestedFix": "In jsonLdScript(), return JSON.stringify(...).replace(/</g, '\\\\u003c') so every caller is safe, and drop the ad-hoc escaping in faq/page.tsx in favour of the shared helper.",
+  "dimension": 0,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Fully traced and confirmed. jsonLdScript() (src/lib/jsonld.ts:105-111) returns bare JSON.stringify with no '<' escaping; JSON.stringify does not escape '<' or '/', so a literal '</script>' in any embedded string survives serialization. The area page (src/app/(frontend)/areas/[slug]/page.tsx:102-105) injects this via dangerouslySetInnerHTML, and the HTML parser closes the script element at the first '</script' regardless of JSON context. Tainted inputs are real: localBusinessService embeds area.seo.metaDescription (jsonld.ts:63-65) and faqPage embeds area FAQ q/a (jsonld.ts:97-98); per src/collections/Areas.ts:68-76 and src/fields/seo.ts these are plain text/textarea fields with no sanitization hooks, updatable by any editor-role account (isAdminOrEditor). Pages are statically generated, so a payload like '</script><img src=x onerror=...>' in a FAQ answer is baked into served HTML and executes for all visitors — stored XSS plus guaranteed broken page HTML even from innocently pasted content containing '</script>'. The divergence claim also verifies: src/app/(frontend)/faq/page.tsx:41 applies .replace(/</g, '\\\\u003c') to identical FAQPage JSON-LD, so the shared helper omitted an escaping step the codebase itself treats as required. The other jsonLdScript callers (home, areas index) pass only static SITE constants, so the area detail page is the exploitable path. Severity stays major (not critical) because exploitation requires an authenticated CMS editor account, but impact reaches all visitors of public pages.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Min-time spam check compares a client-generated timestamp to server time — clock skew silently discards legitimate quote leads",
+  "file": "src/app/(frontend)/actions/quote.ts",
+  "line": 69,
+  "severity": "major",
+  "detail": "The action computes tooFast = Date.now() - startedAt < 3000, where startedAt is the visitor's own Date.now() stamped client-side at mount (QuoteForm.tsx line 49 / InstantQuoteWizard.tsx line 107). Server clock and client clock are different clocks. If a visitor's device clock runs ahead of the server by more than (time-on-page − 3s) — e.g. a Windows PC 2 minutes fast, a common state — then serverNow − clientStamp is negative, tooFast is true, and the action returns a fake {status:'success'}: the user sees the SuccessPanel, but no quote-requests doc is ever created. The lead is lost silently and undetectably, on a lead-gen site's primary conversion flow. The same branch also swallows any submission made before hydration completes (startedAt still '', Number('') === 0 → tooFast), so slow-connection/no-JS users who fill the form early are silently dropped too.",
+  "suggestedFix": "Never diff client time against server time. Issue the timestamp server-side (e.g. render Date.now() into the RSC payload, or an HMAC-signed server timestamp in the hidden field) and compare server-to-server; or measure elapsed time purely client-side and treat the min-time check as advisory (log + flag the doc as suspected spam) rather than silently discarding.",
+  "dimension": 0,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed at quote.ts:68-69: tooFast = Date.now() [server clock] - startedAt [client clock, stamped via Date.now() in useEffect at QuoteForm.tsx:49 / InstantQuoteWizard.tsx:107] < 3000. With client clock ahead by skew S, the diff is elapsedTime - S, so any submit within S+3s of mount is flagged. The branch at quote.ts:70-72 returns fake {status:'success'} before validation and before payload.create, with no logging; both clients render SuccessPanel on success (QuoteForm.tsx:52-53, InstantQuoteWizard.tsx:132-133), so the lead is lost silently and undetectably. Pre-hydration submits also confirmed dropped: startedAt initial state '' → Number('') === 0 → startedAt <= 0 → tooFast. No skew tolerance or server-issued timestamp exists anywhere in the codebase. The check is also ineffective against real bots (field is client-controlled), so its main reliable effect is false-positiving legitimate humans with fast clocks on the site's primary conversion flow. Major severity stands: silent unobservable lead loss on the core flow, affecting the realistic minority of devices with skewed clocks, but not all users.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "What We Do use-case links point to /#use-cases but the home page has no id=\"use-cases\" anchor",
+  "file": "src/app/(frontend)/what-we-do/page.tsx",
+  "line": 78,
+  "severity": "minor",
+  "detail": "USE_CASES on /what-we-do links 'Kids Playrooms', 'Home Offices', 'Dining Rooms' and 'Kitchens' to '/#use-cases'. The home page's use-case section (src/app/(frontend)/page.tsx line 143, <section className=\"bg-ink-50\">) carries no id at all — the two concurrently-built files disagree on the anchor contract. Clicking any of the four links navigates to the home page top instead of scrolling to the tabs; the fragment is silently ignored.",
+  "suggestedFix": "Add id=\"use-cases\" (with scroll-mt for the sticky header) to the use-case <section> on the home page, or point the links at a real target.",
+  "dimension": 0,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by tracing both sides of the contract. (1) src/app/(frontend)/what-we-do/page.tsx lines 78-81 define four use-case entries with href '/#use-cases', and lines 357-366 render each as a real <Link href={useCase.href}> — so the links ship to users. (2) A repo-wide grep for 'use-cases' in src/ returns ONLY those four hrefs and a comment in UseCaseTabs.tsx; no element anywhere carries id=\"use-cases\". (3) The home page's use-case section (src/app/(frontend)/page.tsx line 143) is a bare <section className=\"bg-ink-50\"> with no id, and a grep for 'id=' across page.tsx returns nothing. (4) The only ids inside UseCaseTabs.tsx are React useId-derived tab/panel ids (`${baseId}-tab-${i}`), which can never equal 'use-cases'. There is no custom hash-scroll handler that could rescue the fragment. Concrete failure path: user on /what-we-do clicks 'Kids Playrooms' → browser navigates to / and the unmatched #use-cases fragment is silently ignored → page rests at the hero instead of the use-case tabs. Severity 'minor' is right: it's a dead in-site anchor causing a mildly confusing navigation on a lead-gen site, with no data loss or crash.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Seeded statsCounters suffixes render with no space: \"4weeks\" and \"7days\" on About Us and What We Do",
+  "file": "src/seed/index.ts",
+  "line": 316,
+  "severity": "minor",
+  "detail": "AnimatedCounter renders {prefix}{value}{suffix} as direct text concatenation (AnimatedCounter.tsx lines 47-53). The hand-built StatsBar accounts for this by using suffix ' weeks' with a leading space, but the seeded statsCounters block uses suffix 'weeks' and 'days' (seed/index.ts lines 316-317). Both /about-us and /what-we-do render this block through AnimatedCounter (about-us/page.tsx line 394, what-we-do/page.tsx line 295), so the trust bands display \"4weeks\" and \"7days\" run together. ('-year' is correct.) The Pages collection admin hint ('e.g. \"weeks\", \"days\"') encourages editors to repeat the mistake.",
+  "suggestedFix": "Either make the stats renderers insert a space between the number and a word suffix (e.g. suffix starting with a letter), or seed/document suffixes with a leading space.",
+  "dimension": 0,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by direct code trace. AnimatedCounter.tsx (lines 47-53) renders {prefix}{value}{suffix} as adjacent JSX expressions whose intervening newline+indent whitespace JSX strips, so nothing separates number and suffix; its own JSDoc says suffixes should be like \" weeks\" with a leading space. seed/index.ts lines 316-317 seed suffix 'weeks' and 'days' without the space (values 4 and 7 from site.ts). about-us/page.tsx line 396 and what-we-do/page.tsx line 297 pass stat.suffix directly into AnimatedCounter with no wrapper span, gap, or margin, and the statsCounters block is genuinely seeded onto both pages, so the trust bands render \"4weeks\" and \"7days\". The hand-built StatsBar (StatsBar.tsx lines 19-21) uses ' weeks'/' week' with leading spaces, confirming the intended convention. Pages.ts line 85 admin hint ('e.g. \"weeks\", \"days\", \"-year\"') indeed encourages editors to repeat the mistake. No refuting mechanism exists (no CSS spacing, no trim/pad in any renderer). Cosmetic typography defect on two pages — minor is the correct severity.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Instant-quote action stores raw unclamped width/depth alongside estimates computed from clamped values",
+  "file": "src/app/(frontend)/actions/quote.ts",
+  "line": 123,
+  "severity": "minor",
+  "detail": "For type 'instant', the action persists estimator.widthM/depthM as the raw submitted numbers, but estimateRange() clamps both into SIZE_BOUNDS (2–8m, 0.5 steps) before computing low/high. A tampered or malformed POST (e.g. estimatorWidthM=9999, or negative values) creates a quote-requests doc whose stored dimensions (9999m) contradict its stored estimate (computed for 8m), misleading the sales team who use these figures to 'pick up exactly where the visitor left off'. Nothing constrains the stored numbers to the range the estimate was actually computed from.",
+  "suggestedFix": "Store the clamped values: const width = clampMetres(widthM); const depth = clampMetres(depthM); persist those (and optionally range.areaSqm) instead of the raw inputs.",
+  "dimension": 0,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by tracing the full path. quote.ts:116-117 parses raw numbers gated only by Number.isFinite; line 122 calls estimateRange, which internally clamps via clampMetres (pricing.ts:181-182, SIZE_BOUNDS 2-8m/0.5 step); lines 125-126 then persist the RAW widthM/depthM alongside the clamped-basis estimateLow/High. The Payload schema cannot save it: QuoteRequests.ts:57-58 defines widthM/depthM as plain number fields with no min/max and the collection has no sanitizing hooks, so payload.create accepts 9999 or negatives. The honeypot/timing spam gate is trivially bypassed by any crafted POST with an empty companyWebsite and _eb_ts older than 3s. Concrete failure: tampered instant-quote POST with estimatorWidthM=9999, estimatorDepthM=3 stores a doc with widthM 9999 but an estimate computed for 8m x 3m, contradicting pricing.ts's own comment that \"the stored figures always match what the visitor saw\" and misleading sales staff reading the lead. Severity stays minor: unreachable via the real UI (wizard sliders are bounded at InstantQuoteWizard.tsx:210-212), requires deliberate tampering, and the impact is one internally inconsistent lead record — the pound figures themselves are correctly server-computed. Fix as suggested: persist clampMetres(widthM)/clampMetres(depthM).",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Client and server phone validation disagree — browser-accepted formats are rejected server-side",
+  "file": "src/app/(frontend)/actions/quote.ts",
+  "line": 33,
+  "severity": "minor",
+  "detail": "The client pattern (QuoteForm.tsx line 152, InstantQuoteWizard.tsx line 428) is ^(\\+44|0)[\\d\\s().-]{9,14}$, which accepts the common '+44 (0)7845 655113' style. The server strips [\\s().-] to '+4407845655113' and tests ^(?:\\+44\\d{9,10}|0\\d{9,10})$, which rejects it (11 digits after +44). A visitor whose browser validated the field green then gets 'Please enter a valid UK phone number' from the server — confusing, though recoverable. The client pattern's length range also admits strings the server always rejects (e.g. '+44 12 34 56 78 9' style short inputs padded with separators).",
+  "suggestedFix": "Normalise '+44(0)' → '+44' (drop a parenthesised trunk zero) before testing server-side, or tighten the client pattern to match the server rule exactly so the browser catches it first.",
+  "dimension": 0,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified by executing both regexes. Client pattern ^(\\+44|0)[\\d\\s().-]{9,14}$ (QuoteForm.tsx:152, InstantQuoteWizard.tsx:428) accepts '+44(0)7845655113' and '+44(0)7845 655113' (common UK trunk-zero style), plus separator-padded short strings like '0123-456-7'. The server (quote.ts:86) strips [\\s().-] yielding '+4407845655113' and tests ^(?:\\+44\\d{9,10}|0\\d{9,10})$ (quote.ts:33), which rejects it — 11 digits after +44. Both forms use native browser validation (QuoteForm.tsx:60 has noValidate={false}; InstantQuoteWizard.tsx:350 omits noValidate), so the browser marks the field valid, then the server returns 'Please enter a valid UK phone number'. Concrete failure path traced. Minor correction: the finding's exact example '+44 (0)7845 655113' (space after +44) is 15 chars after the prefix and fails the client pattern too, so it never reaches the server — but the no-space variants do slip through. Severity stays minor: the server echoes values back with an inline field error, so the submission is recoverable; it is friction on a conversion form, not data loss.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "SiteSettings global is seeded, editable and revalidation-listed but never read by the frontend — CMS edits to phone/WhatsApp/tagline do nothing",
+  "file": "src/lib/data.ts",
+  "line": 88,
+  "severity": "minor",
+  "detail": "docs/CMS-SCHEMA.md and the comment in src/lib/site.ts state SiteSettings holds the runtime contact values with SITE as mere fallback, and the revalidate action allowlists the 'site-settings' tag, but getSiteSettings() has zero call sites: Header, Footer, StickyMobileCTA, WhatsAppFloat, QuoteAside, CTABand, Hero all read the hardcoded SITE constant. An editor who changes the phone number or WhatsApp number in the CMS (the schema's stated purpose) sees no effect anywhere on the site — a silent contract breach between the concurrently built CMS layer and frontend. The same applies to the navigation global (Header/Footer use hardcoded NAV/QUICK_LINKS) despite it being seeded and allowlisted for revalidation.",
+  "suggestedFix": "Fetch getSiteSettings() in the layout (it is already tag-cached) and thread phone/whatsapp/tagline/socials into Header/Footer/CTAs with SITE as fallback — or remove the globals and their revalidation tags and document SITE as the single source of truth.",
+  "dimension": 0,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by exhaustive grep: getSiteSettings (src/lib/data.ts:88) has zero call sites anywhere in the repo, and getNavigation does not exist. All cited components (Header, Footer, StickyMobileCTA, WhatsAppFloat, QuoteAside, CTABand, Hero) import the hardcoded SITE constant from src/lib/site.ts; Header.tsx additionally uses a local hardcoded NAV array instead of the seeded navigation global. Meanwhile the full CMS pipeline exists around the dead read path: the globals are seeded (src/seed/index.ts:240-287), tag-allowlisted in the revalidate action (src/app/(frontend)/actions/revalidate.ts:28-29), documented as the contract in docs/CMS-SCHEMA.md:50-52, and even exposed to the inline editor (src/components/editor/edit-api.ts GLOBAL_SLUGS includes both). The comment in site.ts explicitly claims SITE is only a fallback \"when the CMS is empty\", which is false — it is always used. Concrete failure path: editor changes phone/WhatsApp/tagline in Payload admin → revalidateTag succeeds on a cache nothing consumes → site continues rendering the old hardcoded values with no error. No alternate data path (layout fetch, provider, middleware) refutes this. Severity stays minor: current rendered output is correct because seed values mirror the constants; this is a latent silent contract breach that only manifests on a future CMS edit, with an easy fix.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Editor-role users never get the visual editor: /api/users/me strips `role` due to field-level read access",
+  "file": "src/components/editor/EditorOverlay.tsx",
+  "line": 32,
+  "severity": "critical",
+  "detail": "Users.role has field-level access `read: isAdminFieldLevel` (src/collections/Users.ts:50-55). Payload 3.85's meOperation (node_modules/payload/dist/auth/operations/me.js) refetches the user with `overrideAccess: false`, so field read access runs with req.user = the editor and isAdminFieldLevel returns false — the `role` property is omitted from the /api/users/me response for every editor-role user. EditorOverlay gates mounting on `u.role === 'admin' || u.role === 'editor'`, so for editors `u.role` is undefined and the check fails: an editor logs in, visits the site (or ?edit=1), and the admin bar + inline editing never appear at all, even though server-side access control (isAdminOrEditor, revalidateContent's payload.auth) would happily let them PATCH pages/areas/faqs/testimonials. The entire visual-editor feature is admin-only in practice, contradicting DESIGN-BRIEF.md ('logged-in admin/editor') and docs/CMS-SCHEMA.md. Admins are unaffected (isAdminFieldLevel true).",
+  "suggestedFix": "Let users read their own role: change the field read access to `({ req, id }) => roleOf(req.user) === 'admin' || req.user?.id === id`, or drop field-level read access (role isn't secret) and keep create/update admin-only. Alternatively gate EditorOverlay on user presence plus a lightweight capability probe instead of u.role.",
+  "dimension": 1,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed end-to-end. Users.role has field-level read: isAdminFieldLevel (src/collections/Users.ts:50-55). Installed Payload 3.85's meOperation (node_modules/payload/dist/auth/operations/me.js:15-26) refetches the user with overrideAccess: false and returns that doc as result.user with no JWT-claim merge (saveToJWT does not rescue it). req.user is fully hydrated with role via the JWT strategy's Local API findByID (overrideAccess defaults true), so isAdminFieldLevel genuinely evaluates editor → false. The afterRead field-access code (fields/hooks/afterRead/promise.js:225-241) then deletes siblingDoc.role AND suppresses the defaultValue, so /api/users/me returns an editor user with no role property at all. EditorOverlay.tsx:32 gates mounting on u.role === 'admin' || u.role === 'editor', which fails for undefined, so EditorChrome never mounts for editors — and this is the only mount path (src/app/(frontend)/layout.tsx:46). No afterMe/afterRead hooks or custom me route in src mitigate it. Server-side access (isAdminOrEditor on Pages/Areas/FAQs/Testimonials/Media/GalleryItems/Awards) confirms editors are meant to edit, matching DESIGN-BRIEF intent. Severity downgraded from critical to major: no security or data-loss impact, admins unaffected, and editors retain a full workaround via the Payload /admin panel (Users has no access.admin restriction) — but the in-page visual editor silently never appears for the entire editor role.",
+   "severityAdjustment": "major"
+  }
+ },
+ {
+  "title": "Inline-editing an area-page testimonial bakes decorative curly quotes into the CMS quote field",
+  "file": "src/components/areas/AreaTestimonials.tsx",
+  "line": 41,
+  "severity": "major",
+  "detail": "The editable node is `<p data-eb-edit={\\`testimonials:${t.id}:quote\\`}>“{t.quote}”</p>` — the decorative “ ” glyphs are INSIDE the data-eb-edit element. EditorChrome saves `session.el.innerText.trim()`, so any edit (e.g. fixing a typo) PATCHes the quote field as '“...”' including the wrapping quotes. On the next render the component adds another pair ('““...””'), growing with every edit — silent data corruption that also leaks into the home TestimonialStrip and social page which render the same field. Compare src/app/(frontend)/social/page.tsx:183-185, which correctly places &ldquo;/&rdquo; OUTSIDE the editable span.",
+  "suggestedFix": "Move the curly quotes outside the editable element: `<p>“<span data-eb-edit={...}>{t.quote}</span>”</p>` (same pattern as social/page.tsx).",
+  "dimension": 1,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified end-to-end. AreaTestimonials.tsx:41 renders the decorative curly quotes as text children inside the data-eb-edit element. EditorChrome.tsx beginSession captures el.innerText (including the “ ” glyphs) and commitSession saves session.el.innerText.trim() — no quote stripping anywhere — via edit-api.ts saveEditKey, which PATCHes /api/testimonials/<id> with { quote: '“…”' }. parseEditKey accepts the key (testimonials is a collection, single-segment fieldPath), so the save path is live. Any substantive edit (the no-change guard only protects no-op edits) bakes the quotes into the CMS field; the next render wraps them again, compounding per edit. The corrupted field is shared: home TestimonialStrip.tsx:53 and social/page.tsx:184 render the same quote field, and both place their decorative quotes OUTSIDE the editable node (social uses &ldquo;/&rdquo; outside the span, TestimonialStrip uses a separate aria-hidden span), confirming AreaTestimonials deviates from the established correct pattern and would show doubled quotes site-wide after one area-page edit. Suggested fix (move glyphs outside the editable span) matches the sibling implementations. Severity major is appropriate: silent compounding data corruption in shared CMS content via normal editor use, but recoverable through the admin UI and non-security.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "site-settings and navigation globals are completely unwired: CMS edits have zero effect on the site",
+  "file": "src/lib/data.ts",
+  "line": 88,
+  "severity": "major",
+  "detail": "getSiteSettings is defined but never imported anywhere; no code calls findGlobal('navigation') at all. Header, Footer, StickyMobileCTA, WhatsAppFloat and area pages render phone/WhatsApp/tagline/awardLine/socials/nav from the hardcoded SITE constant in src/lib/site.ts (e.g. Footer.tsx:51 `{SITE.tagline}`). An editor changing the phone number or tagline in Site Settings sees no change on the site, ever. Meanwhile the editor plumbing pretends globals work: edit-api.ts GLOBAL_SLUGS supports 'site-settings'/'navigation' with a POST /api/globals path, revalidate.ts allowlists both tags, and docs (CMS-SCHEMA.md 'site-settings:1:tagline' example, DESIGN-BRIEF 'editor ... update Globals') promise it — but not one data-eb-edit attribute in src/ references a global, so that whole code path is unreachable dead code and the globals are a decoy for content editors.",
+  "suggestedFix": "Render Header/Footer/CTA contact details from getSiteSettings()/a getNavigation() lookup (falling back to SITE constants), add data-eb-edit=\"site-settings:1:<field>\" wiring on the tagline/awardLine/phone text nodes, or remove the globals + global branches to stop advertising a non-working contract.",
+  "dimension": 1,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified every claim by direct code inspection. (1) getSiteSettings (src/lib/data.ts:88) is never imported anywhere in src — grep shows the only findGlobal callers are seed scripts (src/seed/index.ts:240,259; src/seed/verify.ts:26-27); no frontend code reads the navigation global. (2) Header.tsx (hardcoded NAV array line 20; SITE.phone at 196/328), Footer.tsx (SITE.tagline:51, awardLine:55, socials:23-26, phone/WhatsApp/email:117-130), StickyMobileCTA.tsx:42/60, WhatsAppFloat.tsx:35, and jsonld.ts all render from the hardcoded SITE constant in src/lib/site.ts, so a CMS edit to Site Settings or Navigation has zero rendered effect. (3) The editor plumbing is genuinely unreachable dead code: edit-api.ts:10 GLOBAL_SLUGS includes both globals and its doc comment shows the 'site-settings:1:tagline' example, revalidate.ts:28-29 allowlists both tags, yet a grep of all data-eb-edit/data-eb-edit-rich attributes in src finds only pages/areas/faqs/testimonials/awards/gallery-items keys — no global key exists in the DOM. (4) The contract is advertised: docs/CMS-SCHEMA.md:14 grants editors 'update Globals' content fields' and documents both globals, and the globals are registered/typed/seeded so they appear functional in the admin. Concrete failure: business changes phone number, editor updates Site Settings, live site + tel: links + JSON-LD keep the stale number forever. Not critical because seed populates the globals from the same SITE constant, so the site is correct until the first divergent edit — a silent editorial no-op, not a crash. Major is the right severity.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "No afterChange revalidation hooks: admin-panel edits (including the editor's own 'Edit in admin' rich-text flow) never reach the site",
+  "file": "src/collections/Pages.ts",
+  "line": 169,
+  "severity": "major",
+  "detail": "All frontend reads go through unstable_cache with tags and NO time-based revalidate (src/lib/data.ts), and no collection/global has an afterChange hook calling revalidateTag/updateTag. Tags are only flushed by the visual editor's inline-save path (revalidateContent) and the admin bar's manual 'Refresh content'. Consequence: every data-eb-edit-rich node (area intro, page richText/imageText bodies) deep-links to /admin/collections/... in a new tab — the user saves there, returns to the site, and their change never appears (cache is never invalidated, indefinitely). Same for any edit made directly in the Payload admin by a user who doesn't know about the admin-bar button, and for quote/status changes affecting nothing. The data.ts comment 'revalidated by tag so CMS edits show up without a rebuild' only holds for the inline-editor subset of edits.",
+  "suggestedFix": "Add afterChange/afterDelete hooks to Pages, Areas, FAQs, Testimonials, GalleryItems, Awards and the two globals that call revalidateTag('<collection>') and revalidateTag('page-/area-<slug>') (Payload 3 supports importing revalidateTag in hooks under Next), or give the unstable_cache entries a short `revalidate` TTL as a safety net.",
+  "dimension": 1,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified end-to-end. (1) src/lib/data.ts wraps every frontend read in unstable_cache with tags only and no revalidate TTL, and no route exports revalidate/dynamic, so cache entries persist until a tag is explicitly flushed. (2) Grep confirms zero revalidateTag/updateTag/revalidatePath calls outside src/app/(frontend)/actions/revalidate.ts, and the only collection hooks in the repo are QuoteRequests.afterChange (create-notification only) and Users.beforeChange (admin bootstrap) — Pages, Areas, FAQs, Testimonials, GalleryItems, Awards and both globals have no hooks. (3) revalidateContent is invoked only from EditorChrome.tsx:136 (inline plain-text save) and :287 (manual admin-bar 'Refresh content' button). (4) EditorChrome.tsx:239-243 confirms data-eb-edit-rich nodes just window.open the Payload admin in a new tab; saving there fires no hook and nothing revalidates on return (no focus/visibility listener). Concrete failure: editor clicks 'Edit in admin' on a rich-text section, saves in /admin, returns — public site serves the stale cached doc indefinitely; same for any edit made directly in the Payload admin. The only mitigation is the manual 'Refresh content' button, which requires the editor to have the frontend open and know its purpose. Severity major is appropriate: the core CMS edits-without-rebuild contract fails permanently for all non-inline edits, but a working manual flush exists in-product, so not critical.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Index-based array field paths can write edits to the wrong row after admin-side reorder/delete",
+  "file": "src/components/editor/edit-api.ts",
+  "line": 76,
+  "severity": "minor",
+  "detail": "Dotted paths address array rows by render-time index (areas:<id>:faqs.2.a, sections.0.steps.3.title, tabs.N.label), but saveEditKey re-fetches the doc fresh (depth=0) and setDeep writes into that fresh array at the same numeric index. Because the rendered HTML comes from unstable_cache (and per the previous finding is never invalidated by admin-panel edits), the page an editor is looking at can be stale: if an admin deleted or reordered FAQ rows in the admin panel, an inline edit of 'faqs.1.a' on the stale page overwrites a different row's answer in the fresh document — silent cross-row data corruption. setDeep also fabricates sparse rows (undefined -> null entries failing `q`/`a` required validation) if the index now exceeds the array length.",
+  "suggestedFix": "Address array rows by their Payload row `id` instead of index (look up the index in the freshly fetched array by row id before setDeep), or at minimum verify the fetched row's current text matches session.original before writing and surface a conflict toast otherwise.",
+  "dimension": 1,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by tracing the full path. Edit keys embed render-time array indices (e.g. areas/[slug]/page.tsx:234-235 `faqs.${i}.q/a`; ProcessStrip, LocalAngles, UseCaseTabs, stats). Page HTML comes from unstable_cache (src/lib/data.ts) and no Payload collection except QuoteRequests has an afterChange hook, so admin-panel edits never invalidate the tags — the editor's page can be stale indefinitely, not merely during a race window. saveEditKey (edit-api.ts:76-81) re-fetches the doc fresh and setDeep writes at the stale numeric index, so after an admin deletes/reorders rows, an inline edit of 'faqs.1.a' silently overwrites a different row's answer; the PATCH succeeds and the UI shows 'Saved'. EditorChrome stores session.original but never compares it to the fetched row — no conflict detection exists. One sub-claim is overstated: the sparse-index case (index beyond new array length) produces null rows that fail Payload's required q/a validation (Areas.ts:72-73), returning 400 which save() catches, restores the original, and shows a toast — that path fails loudly rather than corrupting. The core silent cross-row corruption path is real but requires concurrent use of both editing surfaces plus a row delete/reorder on the same document, a narrow scenario for this single-owner lead-gen site, so 'minor' is an appropriate severity.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "CMS-sourced text rendered without the promised data-eb-edit wiring (gallery CTA band, before/after and figure captions)",
+  "file": "src/app/(frontend)/gallery/page.tsx",
+  "line": 177,
+  "severity": "minor",
+  "detail": "docs/CMS-SCHEMA.md promises 'Every text node rendered from a CMS field carries data-eb-edit', but several CMS fields render bare: gallery page's ctaBand heading/body (gallery/page.tsx:177-178 — the same ctaBand block is edit-wired on home, instant-quote and what-we-do), before/after pair captions (gallery/page.tsx:142-144, gallery-items caption), and the about-us flagship figcaption (about-us/page.tsx:279-281, gallery-items caption). In edit mode these look identical to editable text but show no pencil and can only be changed by hunting through the admin. The same doc also references an `<Editable>` component at src/components/editor/Editable.tsx that does not exist (attributes are hand-inlined), so the documented convention doesn't match the implementation.",
+  "suggestedFix": "Wrap the gallery ctaBand heading/body in `<span data-eb-edit={`pages:${page.id}:sections.${ctaIdx}.heading|body`}>` (guarding for page), add `data-eb-edit={`gallery-items:${item.id}:caption`}` to the two caption sites, and update CMS-SCHEMA.md to describe the inline-attribute convention instead of the nonexistent Editable component.",
+  "dimension": 1,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified all three cited sites. gallery/page.tsx:176-179 passes ctaBlock?.heading/body to CTABand bare, while what-we-do/page.tsx:373-386 wraps the identical ctaBand block fields in data-eb-edit spans (CTABand accepts ReactNode, so wiring is possible). gallery/page.tsx:142-144 renders the gallery-items caption for before/after pairs bare even though the same file wires that same field for the grid (captionEdit at line 44). about-us/page.tsx:279-281 renders flagship.caption bare. docs/CMS-SCHEMA.md:59-61 promises every CMS text node carries data-eb-edit via src/components/editor/Editable.tsx, which does not exist (editor dir contains only EditorOverlay, AdminBar, edit-api, EditorChrome). Concrete failure: in ?edit=1 mode these CMS-sourced texts show no edit affordance, violating the documented contract; content remains editable only via the admin UI. No runtime breakage, so severity stays minor.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Home/About/What-We-Do titles get the layout template appended, doubling \"| EazyBase\" and blowing the 60-char budget",
+  "file": "src/app/(frontend)/page.tsx",
+  "line": 53,
+  "severity": "major",
+  "detail": "The (frontend) layout defines title.template '%s | EazyBase'. Three routes pass their seeded metaTitle as a plain string instead of { absolute }: home (page.tsx:53, seeded 'Affordable Modular Home Extensions | EazyBase Prefab Extensions UK', 66 chars) renders as 'Affordable Modular Home Extensions | EazyBase Prefab Extensions UK | EazyBase' (~78 chars, brand twice); about-us/page.tsx:25 (seed 'About Us | EazyBase Modular Home Extensions') renders '... | EazyBase Modular Home Extensions | EazyBase'; what-we-do/page.tsx:26 same pattern. Every other route (faq, gallery, social, get-a-quote, instant-quote, areas/[slug]) correctly wraps seeded titles in { absolute } — the area page even has a comment explaining why. The home seeded title is also 66 chars > 60 on its own.",
+  "suggestedFix": "Use title: { absolute: page?.seo?.metaTitle ?? ... } on the three routes (matching the other pages), and shorten the seeded home metaTitle (src/seed/index.ts:335) to <=60 chars.",
+  "dimension": 2,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed end-to-end. (frontend)/layout.tsx:27-30 sets title.template '%s | EazyBase'. Three routes return title as a plain string: page.tsx:53 (home), about-us/page.tsx:25, what-we-do/page.tsx:26 — so Next.js applies the template. Seeded metaTitles (src/seed/index.ts:335, 418, 450) already contain '| EazyBase', producing e.g. 'Affordable Modular Home Extensions | EazyBase Prefab Extensions UK | EazyBase' (~78 chars, brand doubled) on the homepage; the hardcoded fallbacks also contain '| EazyBase', so the doubling occurs in every data state. All six other metadata routes (faq, gallery, social, get-a-quote, instant-quote, areas/[slug]) wrap the title in { absolute }, and areas/[slug]/page.tsx:32 has an explicit comment stating absolute is used to avoid exactly this doubling — proving intent and that these three routes are omissions. No template:null override or intervening layout exists to prevent the failure. On a lead-gen site whose homepage title is prime SEO surface, major severity is appropriate.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Shared jsonLdScript() does not escape '<' before dangerouslySetInnerHTML, unlike the FAQ page's inline builder",
+  "file": "src/lib/jsonld.ts",
+  "line": 105,
+  "severity": "major",
+  "detail": "jsonLdScript() returns raw JSON.stringify output that home, /areas and /areas/[slug] inject via dangerouslySetInnerHTML. On area pages the payload includes CMS-editable strings (area.seo.metaDescription, area name, and every localised FAQ q/a via faqPage()). If an editor saves text containing '</script>' (or '<!--'), the string closes the script element early — broken HTML, invalid JSON-LD, and an HTML-injection vector. The codebase already knows about this: faq/page.tsx:41 escapes with .replace(/</g, '\\\\u003c'), but the shared helper every other page uses does not.",
+  "suggestedFix": "In jsonLdScript(), return JSON.stringify(...).replace(/</g, '\\\\u003c') (and drop the now-redundant inline escaping on the FAQ page by reusing the helper).",
+  "dimension": 2,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified end-to-end. jsonLdScript() (src/lib/jsonld.ts:105-111) returns raw JSON.stringify with no '<' escaping, and areas/[slug]/page.tsx:102-105 injects it via dangerouslySetInnerHTML. The payload on area pages includes CMS-editable free text: Areas collection (src/collections/Areas.ts:68-76) defines faqs[].q (text) and faqs[].a (textarea) updatable by isAdminOrEditor, plus seoField's metaDescription — all flow into localBusinessService()/faqPage() with no sanitisation. JSON.stringify does not escape '/' or '<', so a saved value containing '</script>' closes the script element mid-string (HTML parser ignores JSON context), yielding broken JSON-LD and an HTML/stored-XSS injection point on the public page. The inconsistency claim is also accurate: faq/page.tsx:41 escapes with .replace(/</g, '\\\\u003c') while the shared helper does not. Scoping nuances that keep severity at major rather than critical: home and /areas pass only static SITE constants through the helper, so the live exploitable surface is /areas/[slug]; exploitation requires an authenticated admin/editor account (semi-trusted insiders); and accidental breakage needs the literal sequences '</script' or '<!--', not just any '<'. Suggested fix (escape in jsonLdScript, dedupe the FAQ page) is correct.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Zero Open Graph / Twitter metadata anywhere on the site",
+  "file": "src/app/(frontend)/layout.tsx",
+  "line": 25,
+  "severity": "major",
+  "detail": "metadataBase is set, but no route or layout defines an openGraph or twitter field, and there is no opengraph-image file anywhere under src/app — Next.js emits og:* tags only when openGraph is explicitly configured, so every page ships with no og:title, og:description, og:url, og:image or twitter card. The old Yoast site emitted og tags on every page (audit §7 notes the awards badge was the site og:image), so this is a migration regression — and for a lead-gen business whose primary share channels are WhatsApp and Facebook (WhatsApp float on every page, Facebook reviews), shared links will render as bare URLs with no preview.",
+  "suggestedFix": "Add a site-wide openGraph block (siteName, type: 'website', url, images: ['/logo.png' or a dedicated 1200x630 asset]) in the (frontend) layout metadata, plus per-page og title/description/url in each generateMetadata (or an opengraph-image.png in src/app).",
+  "dimension": 2,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by direct inspection: layout.tsx metadata sets only metadataBase/title/description; a case-insensitive grep for openGraph|twitter|og: across src/ returns zero matches, so none of the 9 frontend generateMetadata implementations add og/twitter fields; no opengraph-image file-convention asset exists under src/app. Next.js emits og:*/twitter:* tags only when explicitly configured, so every page ships with none. docs/CONTENT-AUDIT.md:162 confirms the old Yoast site emitted og tags with the awards badge as og:image, making this a real migration regression. Failure path is concrete: any page shared via the site-wide WhatsApp float or Facebook renders without an image or canonical og data. Minor wording caveat: platforms fall back to <title>/meta description, so shares are text-only cards rather than literal bare URLs, but the defect and its lead-gen impact stand. Severity 'major' is appropriate.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "7 of 10 routes have no canonical URL",
+  "file": "src/app/(frontend)/about-us/page.tsx",
+  "line": 24,
+  "severity": "minor",
+  "detail": "Only / (home), /areas and /areas/[slug] set alternates.canonical. /about-us, /what-we-do, /faq, /gallery, /social, /get-a-quote and /instant-quote emit no canonical link at all (Next.js does not auto-generate one from metadataBase). This site is migrating from a WordPress install where every URL had a trailing-slash variant and /instant-quote historically served duplicate content of /get-a-quote — exactly the situation where explicit self-canonicals protect against query-string/UTM duplicate indexing during the 301 transition.",
+  "suggestedFix": "Add alternates: { canonical: '/<route>' } to generateMetadata on the seven routes (they resolve against metadataBase).",
+  "dimension": 2,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed: only /, /areas and /areas/[slug] set alternates.canonical; the other 7 routes' generateMetadata (e.g. about-us/page.tsx:22-30, instant-quote/page.tsx:21-27) return only title/description, and Next.js does not auto-emit a canonical from the metadataBase set in (frontend)/layout.tsx:26. Two of the finding's supporting arguments are refuted — trailing-slash variants are already 308-normalised (documented in next.config.ts:13-15), and /instant-quote is a genuinely distinct estimator page in the rebuild, not a duplicate of /get-a-quote — but the core gap survives: 7 indexable, sitemap-listed routes lack self-canonicals while 3 siblings have them (an inconsistency, not a choice), leaving query-string/UTM variants (likely on a lead-gen site) indexable as duplicates during the WordPress 301 migration. Real but low-impact SEO hygiene issue; minor severity is correct.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "sitemap.ts, robots.ts and JSON-LD hardcode SITE.domain while metadataBase prefers NEXT_PUBLIC_SERVER_URL — absolute URLs can diverge",
+  "file": "src/app/sitemap.ts",
+  "line": 23,
+  "severity": "minor",
+  "detail": "layout.tsx builds metadataBase from process.env.NEXT_PUBLIC_SERVER_URL || 'https://www.eazybase.co.uk', but sitemap.ts (lines 23, 29), robots.ts (line 14) and src/lib/jsonld.ts all use the hardcoded SITE.domain constant. If NEXT_PUBLIC_SERVER_URL is ever set to anything else (staging/preview, apex without www), canonical/og URLs will point at one host while the sitemap and robots sitemap-reference claim another — Search Console flags 'canonical mismatch with sitemap URL'. Conversely a preview deploy today emits production URLs in its sitemap (harmless only if previews are noindexed).",
+  "suggestedFix": "Derive one shared baseURL helper (env-first with SITE.domain fallback) and use it in layout metadataBase, sitemap.ts, robots.ts and jsonld.ts so all absolute URLs agree.",
+  "dimension": 2,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified: layout.tsx:26 builds metadataBase from NEXT_PUBLIC_SERVER_URL || 'https://www.eazybase.co.uk', while sitemap.ts:23/29, robots.ts:14, and jsonld.ts (7 URL usages) hardcode SITE.domain ('https://www.eazybase.co.uk' in src/lib/site.ts:9). Pages emit relative canonicals (e.g. areas/[slug]/page.tsx:40 alternates.canonical = `/areas/${slug}`) that Next resolves against metadataBase, so canonical/og host tracks the env var while sitemap/robots/JSON-LD always claim the hardcoded host. The divergence path is concrete: the checked-in .env already sets NEXT_PUBLIC_SERVER_URL=http://localhost:3000, and any preview/staging/apex value in production splits canonical URLs from sitemap URLs (Search Console canonical-mismatch). No shared helper or normalization exists to prevent this. Severity minor is correct: config-gated SEO inconsistency, no functional failure when the env var matches production.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Several seeded meta descriptions exceed the 155-char SERP budget and the CMS field allows up to 170",
+  "file": "src/seed/index.ts",
+  "line": 337,
+  "severity": "minor",
+  "detail": "Seeded home metaDescription is 157 chars and about-us is 162 chars; docs/area-copy/harrow.json metaDescription is 157 chars — all past the ~155-char truncation point, so Google will ellipsize them mid-sentence. The reusable seo field (src/fields/seo.ts) sets maxLength 170 for metaDescription (and 70 for metaTitle), so editors can save values that always truncate in SERPs. All 17 area titles are unique and <=60 and the other descriptions check out; these are the only over-length ones.",
+  "suggestedFix": "Trim the three descriptions to <=155 chars and tighten src/fields/seo.ts maxLength to 60 (metaTitle) / 155-160 (metaDescription), or add admin descriptions stating the limits.",
+  "dimension": 2,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified by measuring the actual strings: home metaDescription (src/seed/index.ts:337) is exactly 157 chars, about-us (line 420) is 162, and docs/area-copy/harrow.json is 157; all other seeded/area descriptions are 127-155, so the finding's inventory is accurate. src/fields/seo.ts confirms maxLength 170 (metaDescription) and 70 (metaTitle). The failure path is concrete: seedAreas consumes harrow.json and every frontend generateMetadata emits seo.metaDescription as the meta description tag, so the over-budget strings reach SERPs, and the field limits let editors save always-too-long values with no admin guidance. Severity 'minor' is correct: truncation is pixel-based (~920px, roughly 155-160 chars) so the 157-char cases are borderline and Google often rewrites descriptions anyway; only the 162-char about-us is likely to visibly ellipsize. No functional breakage — SEO polish appropriate to a lead-gen site.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "LocalBusiness JSON-LD uses 'provider', which is not a valid property of HomeAndConstructionBusiness",
+  "file": "src/lib/jsonld.ts",
+  "line": 75,
+  "severity": "minor",
+  "detail": "localBusinessService() emits both provider and parentOrganization on a HomeAndConstructionBusiness node. 'provider' is a property of Service/CreativeWork/Reservation, not of LocalBusiness/Organization — schema.org validators report it as an unexpected property on this type (Google ignores it, but it fails the 'JSON-LD validity, required props' bar the rebuild set). parentOrganization alone already expresses the relationship to the #organization node.",
+  "suggestedFix": "Drop the provider key (keep parentOrganization), or restructure as a Service node with provider pointing at the Organization and areaServed on the Service.",
+  "dimension": 2,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed in code: src/lib/jsonld.ts line 75 emits provider:{'@id': ORG_ID} on a HomeAndConstructionBusiness node, alongside a redundant parentOrganization pointing at the same #organization node (line 76); it ships on every area page via src/app/(frontend)/areas/[slug]/page.tsx line 97. schema.org's provider property has domainIncludes CreativeWork/EducationalOccupationalProgram/Invoice/ParcelDelivery/Reservation/Service/Trip — not Organization or LocalBusiness — so validator.schema.org reports it as an unrecognized property on this type. parentOrganization alone already expresses the relationship, so the fix (drop provider) is lossless. Caveat: the finding overstates the project bar — DESIGN-BRIEF.md only requires 'LocalBusiness/Service JSON-LD' on area pages, with no explicit zero-warning validity requirement — and practical impact is nil (Google ignores unknown properties; rich-result eligibility unaffected). Real but low-impact structured-data conformance defect; minor is the right severity.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "BeforeAfter accepts beforeAlt but always renders the before image with empty alt — gallery page computes before-alts that are never used",
+  "file": "src/components/ui/BeforeAfter.tsx",
+  "line": 53,
+  "severity": "minor",
+  "detail": "BeforeAfter takes beforeAlt (gallery/page.tsx:76 builds 'Before: {item.alt}' strings for it) but the before layer is hard-coded alt=\"\" inside an aria-hidden wrapper, so the prop is dead and the before state of every before/after pair is invisible to assistive tech and image search. If hiding it is intentional (the slider announces via the range input), the prop and the gallery-side computation are misleading dead code; if not, the CMS-provided alt is being silently discarded.",
+  "suggestedFix": "Either wire alt={beforeAlt} onto the clipped Image (and move aria-hidden off the img) or delete the beforeAlt prop and the beforeAlt computation in gallery/page.tsx to make the decorative intent explicit.",
+  "dimension": 2,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by reading the code. BeforeAfter.tsx declares and destructures beforeAlt (lines 9, 27) but never uses it: the before Image at line 53 is hard-coded alt=\"\" inside an aria-hidden=\"true\" wrapper (line 49), so the caller-supplied value is silently discarded. The sole consumer, src/app/(frontend)/gallery/page.tsx, computes CMS-derived before-alt text at line 76 (`before.alt || 'Before: ...'`) and passes it at line 139 — that computation is dead. This escapes tsc/eslint because a destructured param with a default counts as 'used'. Either the before state is unintentionally invisible to assistive tech/image search, or the prop and the gallery computation are misleading dead code; both interpretations are genuine defects. Since the after image has proper alt and the range input announces state, an intentionally decorative before layer is defensible, so this stays a minor finding (dead prop + discarded CMS alt), not a functional or major a11y break.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "White text on brand-500 fails contrast (~2.1:1) across all primary CTAs and green surfaces",
+  "file": "src/app/(frontend)/styles.css",
+  "line": 84,
+  "severity": "major",
+  "detail": "`.eb-btn-primary` is `bg-brand-500 text-white` — #96c11f vs #fff computes to ~2.11:1, below even the 3:1 large-text AA threshold, and the button label is 14px (text-sm) uppercase, which needs 4.5:1. Real instances: every QuoteCTA/`eb-btn-primary` button (hero, header, forms' submit buttons, wizard Continue), the StickyMobileCTA WhatsApp segment (12px white on brand-500, StickyMobileCTA.tsx:63), the CTABand green variant where a full band of white heading + brand-50 paragraph sits on bg-brand-500 (CTABand.tsx:32-46), the 'Popular' badge (10px, InstantQuoteWizard.tsx:274), ProgressDots done state, ProcessTimeline/ProcessStrip white step numbers on brand-500 markers, GalleryGrid zoom hint, and BeforeAfter's 'After' label on bg-brand-500/90.",
+  "suggestedFix": "For text-bearing brand-500 surfaces, switch label color to ink-950 (dark-on-lime passes at ~9.9:1) or darken the fill to brand-700 (#648414, 4.3:1 with white — passes large text) for buttons. At minimum change eb-btn-primary and the sticky-bar WhatsApp segment to dark text, and use ink-900 text on the green CTABand.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified by direct computation and code reading. brand-500 is #96c11f (styles.css:10); relative luminance 0.447 gives 2.11:1 against white — below both 4.5:1 (normal text) and 3:1 (large text/UI). .eb-btn-primary (styles.css:83-84) applies bg-brand-500 text-white with 14px (text-sm) semibold uppercase labels from .eb-btn — 14px semibold is not WCAG large text, so 4.5:1 applies and 2.11:1 fails; hover bg-brand-600 is ~2.35:1, also failing. All cited instances exist as described: QuoteCTA.tsx:28 defaults to eb-btn-primary (hero/header/etc.); InstantQuoteWizard.tsx:239/461 and QuoteForm.tsx:252 submit buttons; areas/[slug]/page.tsx:198 and social/page.tsx:260; StickyMobileCTA.tsx:63 (12px white on brand-500); CTABand.tsx:32/42-46 green variant (white h2 fails even 3:1 large-text; brand-50 #f7fbe8 body text ~2.0:1; white phone link line 55 — though the band's button correctly uses the dark variant); InstantQuoteWizard.tsx:68 step indicator and :274 10px 'Popular' badge; ProcessTimeline.tsx:74-75 and ProcessStrip.tsx:46 white bold step numbers on brand-500; BeforeAfter.tsx:77 11px white on brand-500/90; GalleryGrid.tsx:133 zoom-hint icon (3:1 UI-component requirement, fails). No text-shadow, scrim, or overlay mitigates any instance, and DESIGN-BRIEF.md declares no contrast exception — while docs/CONTENT-AUDIT.md:210 shows accessibility fixes are explicitly in scope for the rebuild. Minor quibbles that don't affect validity: ink-950 on brand-500 is ~7.8:1 (finding says 9.9:1, likely computed vs pure black — passes either way), and brand-700 vs white is 4.26:1 (passes only large text, still marginally failing the 14px labels, so the dark-text fix is the stronger option). Severity 'major' is appropriate: systemic WCAG 1.4.3/1.4.11 AA failure on every primary conversion element of a lead-gen site, but no functional breakage, so not critical.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "text-brand-600 used for small text on white fails AA (~2.6:1) — including the site-wide SectionHeading eyebrow",
+  "file": "src/components/ui/SectionHeading.tsx",
+  "line": 47,
+  "severity": "major",
+  "detail": "#86ad1c on white is ~2.6:1; it is used at 12–14px for: the SectionHeading eyebrow on every light section, the Header active nav item (Header.tsx:111, 14px), Areas dropdown group headings (Header.tsx:160, 12px), ProcessTimeline 'Step X of Y' eyebrow (ProcessTimeline.tsx:90), the wizard's current step number and the width/depth readout (InstantQuoteWizard.tsx:70, 203), and required-field asterisks in both forms. All are real text conveying information, well below the 4.5:1 requirement.",
+  "suggestedFix": "Introduce a darker accessible green for text-on-white (brand-700 #648414 is 4.3:1 — still short for 12px; brand-800 #4f6815 passes at ~6.3:1) and swap these `text-brand-600` usages to it, or pair the green eyebrow with a darker weight/size.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified: brand-600 is #86ad1c (styles.css:11), contrast on white computes to ~2.62:1, failing AA for normal text (4.5:1) and even the 3:1 large-text bar. All cited usages exist and render on white/light backgrounds: SectionHeading.tsx:47 eyebrow at 12px on light sections (component used 31x across 14 files, onDark defaults false); Header.tsx:111 active nav (14px on bg-white/85 header), Header.tsx:160 and :288 dropdown/mobile group headings (12px on bg-white); ProcessTimeline.tsx:90 eyebrow (12px, light section on what-we-do page); InstantQuoteWizard.tsx:70 current-step number explicitly 'bg-white text-brand-600' (12px bold, conveys wizard state); InstantQuoteWizard.tsx:203 dimension readout (18px bold — still under WCAG's 18.66px bold large-text cutoff, and 2.62 fails 3:1 regardless); required asterisks in both forms. No parent overrides or darker wrappers found; text is informational, not decorative. Suggested-fix math also verified (brand-700 #648414 ≈ 4.33:1, brand-800 passes). Major is the correct severity: pervasive AA contrast failure across nav, section labels, wizard state and forms, but not functionally breaking.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Mobile menu has no focus trap and no Escape handling",
+  "file": "src/components/layout/Header.tsx",
+  "line": 240,
+  "severity": "major",
+  "detail": "Open the hamburger menu on mobile with a keyboard/screen reader: body scroll is locked, but Tab moves out of the fixed overlay into the page content visually hidden behind it, and Escape does nothing. Focus is also never moved into the menu on open nor restored to the hamburger on close. The Lightbox implements all of this correctly, so the menu is inconsistent with the codebase's own pattern — keyboard users can end up activating invisible links behind the sheet.",
+  "suggestedFix": "Mirror the Lightbox pattern: on open, move focus to the first menu item, trap Tab within the overlay, close on Escape, and restore focus to the hamburger button on close (or add inert to <main>/<footer> while open).",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by reading src/components/layout/Header.tsx in full: the mobile menu (fixed inset-0 opaque overlay, lines 240-336) has no keydown listener (Escape does nothing), no focus trap, no focus move-in on open or restore on close, and no inert/aria-hidden on background content (grep across src for inert/FocusTrap found nothing). Body scroll is locked (lines 65-70) but page links behind the white sheet remain focusable: Tab past the last menu item (QuoteCTA, line 334) lands focus on invisible links behind the overlay, and Enter activates them — a concrete WCAG 2.4.3/dialog-pattern failure on the primary navigation. The claimed inconsistency is also verified: src/components/gallery/Lightbox.tsx implements the full pattern (focus origin saved and restored, Escape close, Tab wrap trap, lines 33-78). Only mitigating factor: affects keyboard/screen-reader users on narrow viewports, not mouse/touch users, so 'major' (not critical) is the right level.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Instant-quote size sliders use appearance-none with no thumb styling — thumb is invisible in WebKit/Blink",
+  "file": "src/components/quote/InstantQuoteWizard.tsx",
+  "line": 215,
+  "severity": "major",
+  "detail": "The width/depth range inputs have `appearance-none ... bg-ink-100 accent-brand-500`. Once appearance is none, Chrome/Safari/Edge render no native thumb unless `::-webkit-slider-thumb` is styled (BeforeAfter.tsx does this; the wizard doesn't), and `accent-color` is ignored. Result: on the primary conversion tool, users see a flat grey bar with no visible handle to drag — the control looks broken and the 44px touch-target requirement is unmet (track is h-2 / 8px tall).",
+  "suggestedFix": "Either drop `appearance-none` and rely on `accent-brand-500`, or add explicit `[&::-webkit-slider-thumb]` / `[&::-moz-range-thumb]` classes creating a >=24px (ideally 44px hit area) brand-styled thumb, as BeforeAfter already does.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed at src/components/quote/InstantQuoteWizard.tsx:215 — both size sliders have `appearance-none ... bg-ink-100 accent-brand-500` with no `::-webkit-slider-thumb`/`::-moz-range-thumb` styling in the component, in the global stylesheet (src/app/(frontend)/styles.css has no slider/appearance rules), or anywhere else (only BeforeAfter.tsx styles a thumb, scoped to itself). In Blink/WebKit, `appearance: none` on a range input suppresses native painting of the thumb unless the thumb pseudo is explicitly re-created, and `accent-color` is ignored once appearance is none — so in Chrome/Safari/Edge users see a flat 8px grey track with no visible handle on the primary conversion tool. Firefox still renders a default grey thumb via UA styles, so it is not universally invisible. Refutation attempts failed: no global CSS, no Tailwind preflight thumb styles, no other rescue. Mitigations keep this at major rather than critical: the slider remains operable (click/drag on track, keyboard), the live metre readout and floor-area panel confirm value changes, defaults are pre-set, and the Continue button works regardless. One caveat: the claimed \"44px touch-target requirement\" does not appear in DESIGN-BRIEF.md — that portion is generic accessibility guidance, not a documented project requirement — but the core defect stands.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Sticky mobile CTA permanently covers the footer bottom bar — no bottom padding anywhere",
+  "file": "src/components/layout/Footer.tsx",
+  "line": 152,
+  "severity": "major",
+  "detail": "StickyMobileCTA's own comment says 'Give page content bottom padding (or rely on the footer) so nothing is permanently obscured', but layout.tsx renders <main> and <Footer> with no mobile bottom padding, and the bar only hides while a quote form is in view. On mobile, the fixed ~60px bar permanently overlaps the footer's bottom strip (copyright + credit, py-5 text-xs) and the last footer links — the user can never scroll them clear. The Header's mobile menu was given pb-28 for exactly this reason; the footer wasn't.",
+  "suggestedFix": "Add `pb-16 md:pb-0` (bar height + safe-area) to the footer bottom bar or `<body>`-level spacer under md, matching the mobile menu's pb-28 approach.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by tracing the code. StickyMobileCTA is fixed bottom-0 z-40 md:hidden and only hides when a [data-quote-form]/#quote-form element intersects; the only such element in the repo is on /get-a-quote (get-a-quote/page.tsx:67), so on every other page the effect early-returns and the bar never hides. Even on /get-a-quote the stacked mobile footer (py-14, 4 columns) is taller than a phone viewport, so the form is off-screen at scroll bottom and the bar shows. No compensating bottom padding exists: layout.tsx renders Footer/main with none, Footer.tsx bottom bar is py-5 with none, and styles.css has zero padding-bottom rules. The ~57-90px fixed bar therefore permanently overlays the footer bottom strip (copyright + credit, ~56px) on <768px viewports. The component's own doc comment requires bottom padding and Header.tsx:326 uses pb-28 on the mobile menu for exactly this reason — the footer was missed. However, the only permanently unreachable content is the copyright line and a placeholder credit link (href=\"#\", renders \"—\"); no navigation, contact, or conversion element is blocked, and the obscuring element is itself the primary CTA. Real defect, but impact is cosmetic, so severity should be minor rather than major.",
+   "severityAdjustment": "minor"
+  }
+ },
+ {
+  "title": "Low-contrast grey microcopy: text-ink-300 (~2.1:1) and text-ink-400 (~3.4:1) on white, including inactive tab labels",
+  "file": "src/components/quote/InstantQuoteWizard.tsx",
+  "line": 498,
+  "severity": "major",
+  "detail": "text-ink-300 (#b0b4a9, ~2.1:1 on white) is used for real content: the wizard's per-m² guide-rate line (line 498) and the slider min/max bound labels (line 218) — both 12px. text-ink-400 (#8a8e83, ~3.4:1) is used for extension-type blurbs, spec blurbs, 'optional' field markers, form footnotes, and notably the inactive tab labels in UseCaseTabs.tsx:72 (14px interactive control labels). All fall below the 4.5:1 AA threshold for their sizes.",
+  "suggestedFix": "Shift these to ink-500 (#6d7167, ~5:1 — passes) for 12–14px text; reserve ink-300/ink-400 for text on dark ink-900/950 panels where they pass.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified by direct computation and code reading. Tokens in src/app/(frontend)/styles.css: ink-300 #b0b4a9 = 2.11:1 on white, ink-400 #8a8e83 = 3.35:1 on white (worse on ink-50 #f6f7f4). InstantQuoteWizard.tsx:498 (guide-rate line) and :218 (slider bounds) are text-xs text-ink-300 rendered inside a bg-white section (instant-quote/page.tsx:68) with no darker wrapper — 12px text at 2.1:1, far below the 4.5:1 AA requirement. UseCaseTabs.tsx:72 inactive tab labels are text-sm (14px) font-semibold text-ink-400 on a bg-ink-50 section; 14px semibold is not WCAG large text, so 4.5:1 applies and ~3.3:1 fails — these are interactive controls. Supporting instances (ink-400 blurbs at wizard lines 171/279, helper 187, footnote 465, QuoteForm optional markers 203/217) also confirmed on white. Attempted refutation: the only places these tokens pass are dark panels (bg-ink-900 result card, QuoteAside, Footer — ink-300 there is ~6.7:1), and the finding already scopes itself to the light-background uses, so no cited line is a false positive. Severity major stands: multiple components, real informational content plus interactive tab labels below AA, with the 2.1:1 instances hard to read for all users; not critical since nothing is functionally broken.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "InstantQuoteWizard field errors are not programmatically associated with inputs",
+  "file": "src/components/quote/InstantQuoteWizard.tsx",
+  "line": 379,
+  "severity": "minor",
+  "detail": "QuoteForm sets aria-invalid + aria-describedby pointing at each error <p>; the wizard's lead-capture form renders the same red error paragraphs (lines 379-453) with no id, no aria-describedby and no aria-invalid on the inputs. A screen-reader user tabbing back to a failed field hears nothing about why it failed — inconsistent with the sibling form's correct pattern. The top role=\"alert\" banner does announce the generic message, but field-level context is lost.",
+  "suggestedFix": "Reuse QuoteForm's FieldError component and aria-invalid/aria-describedby wiring in the wizard form.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by reading both files. InstantQuoteWizard.tsx lines 370-454: all five lead-capture inputs lack aria-invalid and aria-describedby, and the error <p> elements (e.g. line 380) have no id; the wizard's inputClass also has no error-state border variant despite the banner saying \"highlighted fields\". QuoteForm.tsx (lines 30-35, 97-101, etc.) implements the correct pattern with a FieldError component, proving the inconsistency. Attempted refutation failed: the error paragraphs ARE reachable because the server action (actions/quote.ts lines 80-106) validates more strictly than native HTML validation — e.g. server EMAIL_RE rejects emails like \"a@b\" that pass type=email, so state.fieldErrors renders in real browsers. A screen-reader user then gets no programmatic association between field and error. Real WCAG 3.3.1/4.1.2 defect; minor is the right severity since the role=\"alert\" banner still announces the failure generically and sighted users are unaffected.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Wizard step changes drop keyboard focus to <body>",
+  "file": "src/components/quote/InstantQuoteWizard.tsx",
+  "line": 110,
+  "severity": "minor",
+  "detail": "Selecting a type/spec card or pressing Continue/Back unmounts the button that had focus (AnimatePresence mode=\"wait\" swaps the whole step), so focus resets to document body. A keyboard user must Tab from the top of the page after every one of the 4 steps, and screen readers get no announcement that the step changed.",
+  "suggestedFix": "After go(next), move focus to the new step's <h2> (tabIndex={-1}) or wrap the step heading in an aria-live=\"polite\" region.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by code trace. Each wizard step is a conditionally-rendered motion.div keyed by step inside <AnimatePresence mode=\"wait\"> (InstantQuoteWizard.tsx lines 141-493). Type cards (line 156), spec cards (line 260), and Back/Continue buttons (lines 236, 239, 293) all call go() in onClick, changing `step` and unmounting the currently-focused button — the browser then resets focus to document.body. No refuting mechanism exists: grep of src/components/quote shows zero focus()/useRef/autoFocus calls; the step <h2>s have no tabIndex and no aria-live (the only live region is the step-2 floor-area readout, line 227); the page (instant-quote/page.tsx line 82) adds no wrapper focus handling. Screen readers get no step-change announcement and keyboard users must Tab from the top of the document after each transition. The success-state swap to SuccessPanel (line 132) has the same gap. Severity minor is appropriate: real WCAG 2.4.3/4.1.3 issue on the lead-gen flow, but the wizard stays fully keyboard-operable and no data is lost.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Desktop Areas dropdown cannot be dismissed with Escape and lingers after keyboard focus moves on",
+  "file": "src/components/layout/Header.tsx",
+  "line": 143,
+  "severity": "minor",
+  "detail": "The dropdown opens on hover and on focus of the Areas link, but only closes on mouseleave or route change. A keyboard user who tabs onto Areas then continues tabbing (through all 17 town links and past them to 'Social') leaves the 30rem panel stuck open over page content with no Escape handler and no close-on-blur. The trigger Link also lacks aria-expanded/aria-haspopup.",
+  "suggestedFix": "Close on Escape and when focus leaves the <li> (focusout with relatedTarget check); add aria-expanded + aria-haspopup=\"true\" to the Areas trigger.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by tracing src/components/layout/Header.tsx. The Areas dropdown opens on Link onFocus (line 113-116) but the only close paths are mouse events (onMouseLeave line 102-104, onMouseEnter of a sibling li line 100) and route change (pathname effect line 60-63). The onFocus handler for non-Areas items lacks the `else setAreasOpen(false)` that the mouse handler has, there is no onBlur/focusout handling, and no keydown/Escape handler anywhere in the file. So a keyboard user tabbing onto Areas opens the 30rem absolutely-positioned panel (line 150), and tabbing onward through the 17 town links and past Social leaves it stuck open over page content with no keyboard dismissal. The desktop trigger also lacks aria-expanded/aria-haspopup, while the mobile Areas button (line 256) correctly sets aria-expanded, confirming the inconsistency. Severity minor is appropriate: keyboard/a11y polish defect, no functional dead-end since activating any link closes it via route change.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Header dropdown/mobile-Areas animations and StickyMobileCTA slide are not gated on prefers-reduced-motion",
+  "file": "src/components/layout/Header.tsx",
+  "line": 273,
+  "severity": "minor",
+  "detail": "Header reads useReducedMotion but only applies it to the nav underline and menu sheet: the mobile Areas height/opacity expansion (line 273), the desktop dropdown fade/translate (line 146), and the chevron rotations always animate. StickyMobileCTA's translate-y show/hide CSS transition (StickyMobileCTA.tsx:35) likewise has no motion-reduce variant. Every other motion component in the repo (FAQAccordion, GalleryGrid, ProcessTimeline, HeroAssembly, counters, parallax, WhatsApp pulse) respects it — these are the only gaps found.",
+  "suggestedFix": "Pass `reducedMotion ? { duration: 0 } : ...` transitions to the two Header AnimatePresence blocks and add `motion-reduce:transition-none` to the sticky bar.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by direct code read. Header.tsx:52 reads useReducedMotion but applies it only to the nav underline (line 132) and the mobile menu sheet (lines 242-244). The desktop Areas dropdown (motion.div lines 145-149, opacity/y fade-translate) and the mobile Areas height/opacity expansion (motion.div lines 273-277) animate unconditionally, and the chevron/hamburger CSS transitions have no motion-reduce variant. StickyMobileCTA.tsx:35-36 has 'transition-transform duration-300' translate-y slide with no motion-reduce:transition-none. Refutation attempts failed: no MotionConfig exists in src/ (so motion/react does not auto-respect the OS setting), and the only global prefers-reduced-motion CSS (styles.css:58-62) resets scroll-behavior only, not transitions. The claimed codebase convention is real: FAQAccordion gates the identical height/opacity AnimatePresence pattern (lines 103-107), and GalleryGrid, UseCaseTabs, InstantQuoteWizard, ProcessTimeline, ParallaxSection, AnimatedCounter, WhatsAppFloat, HeroAssembly, SuccessPanel, both Reveals, plus QuoteCTA/AreaCard motion-reduce variants all respect reduced motion — these are genuine outliers. Concrete failure: with OS Reduce Motion on, tapping Areas in the mobile menu still plays a 250ms height animation, hovering desktop Areas plays a fade/translate, and the sticky CTA bar slides over 300ms. Severity stays minor: short, small-distance animations; an accessibility polish/consistency gap, not a functional break.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Lightbox image navigation is not announced to screen readers",
+  "file": "src/components/gallery/Lightbox.tsx",
+  "line": 96,
+  "severity": "minor",
+  "detail": "Arrow keys / prev-next buttons swap the image and update the dialog's aria-label and the '1 / N' counter, but changing aria-label on an already-focused dialog is not re-announced, and the counter/caption have no aria-live. A screen-reader user pressing Next hears nothing — they can't tell the image changed or which one they're on. Focus management (trap, restore, Esc) is otherwise exemplary.",
+  "suggestedFix": "Add aria-live=\"polite\" to the counter/caption block, or a visually-hidden live region announcing 'Image X of N: {alt}' on navigate.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified in src/components/gallery/Lightbox.tsx: on navigation only the dialog's aria-label (line 88), the counter (line 98), and the caption (lines 176-184) change; none have aria-live/role=status, and a repo grep confirms no live region exists in Lightbox.tsx or its sole caller GalleryGrid.tsx. Focus does not move on navigate (arrow-key handler is on document; prev/next buttons keep static labels), and mutating aria-label on an already-focused dialog is not re-announced by screen readers, nor is a swapped <Image> alt without a live region. Concrete failure: an SR user pressing Next/ArrowRight hears nothing. Minor is the right severity — the lightbox remains operable/escapable and this doesn't affect the lead-gen conversion flow, which does have proper live regions.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Instant-quote wizard's lead form is not marked data-quote-form, so the sticky CTA bar overlays the active quote flow",
+  "file": "src/app/(frontend)/instant-quote/page.tsx",
+  "line": 68,
+  "severity": "minor",
+  "detail": "StickyMobileCTA hides itself when an element with data-quote-form/#quote-form is in view; only /get-a-quote sets the marker. On /instant-quote, mobile users filling in the step-4 lead-capture form keep the fixed bar on top of the bottom of the form, and its 'Get A Quote' segment invites navigating away mid-wizard, discarding their estimate.",
+  "suggestedFix": "Add data-quote-form to the estimator <section> (or at least to the step-4 lead-capture wrapper) on the instant-quote page.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified end-to-end: StickyMobileCTA is rendered globally in src/app/(frontend)/layout.tsx:44 and only hides when [data-quote-form] or #quote-form exists and intersects (StickyMobileCTA.tsx:19-27, with an early return if no such element is found at mount). Grep shows the only marker in the codebase is on get-a-quote/page.tsx:67; instant-quote/page.tsx:68 has an unmarked section and InstantQuoteWizard's step-4 form (line 350) carries no marker. Therefore on mobile /instant-quote the fixed bar never hides, overlaying the bottom of the step-4 lead-capture form, and its 'Get A Quote' segment links to /get-a-quote while all wizard state is unpersisted useState (lines 92-97), so tapping it discards the estimate. Mitigating factor keeping severity minor: content scrolls behind the bar and the footer follows, so the submit button remains reachable — it is an overlay/UX defect, not a blocker. Note on the fix: marking only the step-4 wrapper would not work because the observer queries the DOM once on mount before step 4 exists; the marker belongs on the always-present estimator section (or the observer must be made dynamic).",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Sub-44px touch targets: mobile Areas submenu links, footer link lists, wizard text buttons",
+  "file": "src/components/layout/Header.tsx",
+  "line": 296,
+  "severity": "minor",
+  "detail": "Mobile menu Areas town links are py-1.5 text-sm (~32px row height, two dense columns); footer quick-links/areas lists are text-sm with space-y-2 (~20px hit height per link, mobile included); the wizard's '← Back' and 'Change my choices' controls are bare text-sm/text-xs buttons (~20px). All are below the 44px minimum on touch surfaces, while primary CTAs (py-3.5 bar segments, h-11 hamburger, h-11 lightbox arrows) meet it.",
+  "suggestedFix": "Increase to py-2.5/py-3 (or add min-h-[44px] flex items-center) on mobile menu town links, footer list links, and the wizard back links.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "All cited measurements verified in code: Header.tsx:296 mobile town links are `block py-1.5 text-sm` (~32px rows, two-column grid, lg:hidden so touch-only context); Footer.tsx:66-93 quick-links and areas lists are bare `text-sm` links with space-y-2/gap-y-2 (~20px hit height); InstantQuoteWizard.tsx:236/293/325 back and 'Change my choices' controls are unpadded text-sm/text-xs buttons (~16-20px). All are below 44px while the site's primary CTAs meet it, and the wizard back links sit in the mobile conversion funnel, so the usability concern is concrete. Caveat: nothing here fails WCAG 2.2 AA — the 32px menu rows exceed the 24px SC 2.5.8 minimum, and the ~20px footer/wizard targets pass via the spacing exception (~28px center-to-center). The 44px figure is Apple HIG / WCAG AAA guidance and no project doc mandates a target size, so this is a real best-practice touch-target polish issue, correctly rated minor.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Footer credit is a placeholder link: href=\"#\" with '—' as its accessible name",
+  "file": "src/components/layout/Footer.tsx",
+  "line": 159,
+  "severity": "minor",
+  "detail": "The 'Website by' credit renders <a href=\"#\">—</a> (TODO comment inside). It's a focusable link whose accessible name is a dash and whose activation scrolls to top — meaningless for screen-reader and keyboard users on every page, and it ships in production markup.",
+  "suggestedFix": "Remove the anchor (render plain text or nothing) until the credit exists.",
+  "dimension": 3,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed at src/components/layout/Footer.tsx lines 157-163: an unconditional <a href=\"#\"> whose only content is an em dash, with a TODO comment inside. Footer is rendered in src/app/(frontend)/layout.tsx (line 43), the frontend root layout, so the placeholder link ships on every public page. Concrete failure path: keyboard/screen-reader users encounter a focusable link whose accessible name is a dash and whose activation (href=\"#\") scrolls to top — a WCAG 2.4.4 link-purpose failure with no aria-hidden, tabIndex=-1, or conditional rendering to mitigate it. Not a style opinion, not already handled, not hypothetical. Minor severity is appropriate since it is an accessibility/polish issue, not functional breakage.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Quote requests are stored but never emailed — leads can rot unseen in the CMS",
+  "file": "src/collections/QuoteRequests.ts",
+  "line": 22,
+  "severity": "critical",
+  "detail": "The afterChange hook is a console.log stub ('Email notification stub — SMTP not configured yet... TODO: send notification email to info@eazybase.co.uk'). Both conversion forms (full form and instant estimator) resolve to a Payload doc only. Scenario: a homeowner submits a £40k quote request, sees the success panel promising contact 'within 1 working day', but nobody at EazyBase is notified — the lead is only discoverable by manually logging into /admin. The DESIGN-BRIEF CMS section explicitly requires 'QuoteRequests (form submissions stored + emailed)'. For a lead-gen site this is the primary conversion channel silently failing at the last step.",
+  "suggestedFix": "Wire an email send (e.g. Resend/nodemailer via Payload's email adapter) in the afterChange create hook to info@eazybase.co.uk, including the estimator payload; fail-safe so email errors don't block doc creation.",
+  "dimension": 4,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed end-to-end. src/collections/QuoteRequests.ts:18-31 contains only a console.log stub in the afterChange create hook ('Email notification stub — SMTP not configured yet... TODO: send notification email to info@eazybase.co.uk'). Grep across the repo for nodemailer/resend/smtp/sendEmail/@payloadcms/email finds nothing but that comment, and payload.config.ts configures no email adapter, so no email can be sent by any path. The sole creation route is the shared server action src/app/(frontend)/actions/quote.ts:154 (used by both the full form and the instant estimator), which does payload.create and returns success — no notification. The success UI (src/components/quote/SuccessPanel.tsx:52 and InstantQuoteWizard.tsx:345) promises contact 'within 1 working day', and DESIGN-BRIEF.md:105 explicitly requires 'QuoteRequests (form submissions stored + emailed)'. So the finding's failure path is concrete and real. Severity downgraded from critical to major: the lead is NOT lost — it is durably stored with status 'new' and surfaced in the /admin list (defaultColumns include name/email/status/createdAt), so it is recoverable by routine admin checks; the gap is an explicitly code-documented deferred configuration task (SMTP not yet provisioned) rather than a hidden defect, and there is no data loss, security exposure, or crash. It is a launch-blocking unmet requirement, but not critical in the data-loss/security sense.",
+   "severityAdjustment": "major"
+  }
+ },
+ {
+  "title": "SiteSettings and Navigation globals are never consumed — CMS edits to phone/WhatsApp/socials have zero effect",
+  "file": "src/lib/data.ts",
+  "line": 88,
+  "severity": "major",
+  "detail": "getSiteSettings is exported but has no callers (grep confirms the only occurrence is its definition), and the seeded Navigation global is likewise unused. Header, Footer, StickyMobileCTA, WhatsAppFloat, CTABand, QuoteAside, SuccessPanel, Hero and every area page read the hardcoded SITE constant from src/lib/site.ts. Scenario: the client changes the phone or WhatsApp number in Payload admin (the field even has a helper description 'International format without +, e.g. 447845655113'), sees it save successfully, but every tel:/wa.me link on the live site keeps the old number — the exact mixed-number defect class (audit §9.3–4) the rebuild was meant to eliminate. site.ts's own comment says the constants are 'fallbacks used when the CMS is empty', which is not what the code does.",
+  "suggestedFix": "Fetch getSiteSettings in the (frontend) layout (tag-cached) and thread phone/whatsapp/socials/awardLine into Header/Footer/StickyMobileCTA/WhatsAppFloat/CTABand, falling back to SITE when fields are empty; or document the globals as decorative and remove them from admin to avoid silent divergence.",
+  "dimension": 4,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by direct code inspection. getSiteSettings (src/lib/data.ts:88) has no callers anywhere in src — only its definition, seed/verify scripts (which call findGlobal directly), the editor PATCH allowlist, and the revalidate tag list reference 'site-settings'. The Navigation global is likewise only touched by seed scripts. Every component the finding names (Header, Footer, StickyMobileCTA, WhatsAppFloat, CTABand, QuoteAside, SuccessPanel, Hero, StatsBar, InstantQuoteWizard, plus faq/about/social/area pages) imports the hardcoded SITE constant from src/lib/site.ts, whose own comment falsely claims the values are 'fallbacks used when the CMS is empty'. Concrete failure path: an editor changes phone/whatsappNumber in Payload admin (fields exist with helper text inviting edits, update access granted to admin/editor, and a site-settings revalidation tag is even wired in revalidate.ts), the save succeeds, but no render path ever reads the global, so all tel:/wa.me links keep the compiled-in numbers indefinitely. docs/CMS-SCHEMA.md documents both globals as part of the CMS contract, and docs/CONTENT-AUDIT.md items 3–4 list mixed phone/WhatsApp numbers as defects the rebuild must fix — this silently reintroduces that defect class. Not mitigated by the visual editor: no component emits data-eb-edit for site-settings fields. Major is the right severity: no crash and current hardcoded values are correct, but the failure is silent dead-write divergence on a lead-gen site's primary contact channels.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Home, About Us and What We Do render doubled '| EazyBase' title suffixes",
+  "file": "src/app/(frontend)/page.tsx",
+  "line": 53,
+  "severity": "major",
+  "detail": "The (frontend) layout sets title.template '%s | EazyBase'. Home (page.tsx:53), about-us (about-us/page.tsx:25) and what-we-do (what-we-do/page.tsx:26) return the seeded metaTitle as a plain string, so the template appends the suffix again. Scenario: the home page's browser tab / SERP title renders 'Affordable Modular Home Extensions | EazyBase Prefab Extensions UK | EazyBase'; About Us renders 'About Us | EazyBase Modular Home Extensions | EazyBase'. Every other page (faq, gallery, social, both quote pages, area pages) correctly wraps the CMS metaTitle in { absolute } — these three were missed, and home is the most SEO-critical page on the site.",
+  "suggestedFix": "Use title: { absolute: page?.seo?.metaTitle ?? FALLBACK } in generateMetadata for home, about-us and what-we-do, matching the pattern already used on the other seven page templates.",
+  "dimension": 4,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed end-to-end. (frontend)/layout.tsx:29 defines title.template '%s | EazyBase'. Home (page.tsx:53), about-us (page.tsx:25) and what-we-do (page.tsx:26) return the CMS metaTitle as a plain string, so Next.js applies the parent template. Seed data (src/seed/index.ts:335,418,450) already embeds 'EazyBase' in those metaTitles, producing doubled suffixes like 'Affordable Modular Home Extensions | EazyBase Prefab Extensions UK | EazyBase'; the ?? fallback strings also contain '| EazyBase', so the bug fires even without seeded pages. The other seven page templates (faq, gallery, social, get-a-quote, instant-quote, areas/[slug]) wrap metaTitle in { absolute }, and areas/[slug]/page.tsx:32 has a comment explicitly stating absolute is used to avoid the template doubling the suffix — proving these three are missed omissions, not intent. Not a functional break, but it corrupts the homepage SERP/tab title on an SEO lead-gen site, so 'major' is appropriate.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "'/#use-cases' links on What We Do point at an anchor that doesn't exist on the home page",
+  "file": "src/app/(frontend)/what-we-do/page.tsx",
+  "line": 78,
+  "severity": "minor",
+  "detail": "USE_CASES cross-links (Kids Playrooms / Home Offices / Dining Rooms / Kitchens) all href '/#use-cases', but the home page's use-case tabs section (page.tsx ~line 143) is a bare <section className=\"bg-ink-50\"> with no id. Scenario: a user on /what-we-do clicks 'Kitchens' expecting to land on the kitchens content and instead lands at the top of the home page with no scroll — the deep link silently degrades on all four links.",
+  "suggestedFix": "Add id=\"use-cases\" (plus scroll-mt) to the home use-case section, and ideally support selecting the tab via hash/searchParam.",
+  "dimension": 4,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by tracing the actual code. src/app/(frontend)/what-we-do/page.tsx lines 78-81 hard-code href '/#use-cases' on four use-case links. On the home page (src/app/(frontend)/page.tsx line 143) the use-case tabs section is a bare <section className=\"bg-ink-50\"> with no id, and a repo-wide grep shows no element anywhere renders id=\"use-cases\" (UseCaseTabs.tsx only emits useId-based tab/panel ids). The codebase's own convention elsewhere (id=\"process\" + scroll-mt-24 on /what-we-do line 215) confirms the anchor mechanism was simply omitted here. Failure path: clicking any of the four links navigates to '/' and lands at the top with no scroll — the deep link silently degrades. Severity 'minor' is appropriate: navigation still works, no error, just four degraded secondary cross-links.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Footer renders an unfinished 'Website by —' placeholder credit linking to '#'",
+  "file": "src/components/layout/Footer.tsx",
+  "line": 157,
+  "severity": "minor",
+  "detail": "The footer bottom bar ships '© {year} Eazybase Extensions Ltd' followed by 'Website by <a href=\"#\">—</a>' with a '{/* TODO: credit + link */}' comment. Scenario: every visitor on every page sees a dangling 'Website by —' line, and clicking the dash jumps to the top of the page — visible placeholder/TODO content in production, which the audit brief explicitly flags.",
+  "suggestedFix": "Fill in the real credit and URL, or remove the 'Website by' paragraph entirely until the credit is decided.",
+  "dimension": 4,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified at src/components/layout/Footer.tsx lines 157-163: the bottom bar unconditionally renders 'Website by' followed by <a href=\"#\"> containing only an em-dash, with an inline '{/* TODO: credit + link */}' comment. The Footer is mounted in src/app/(frontend)/layout.tsx line 43, so this placeholder appears on every frontend page. Clicking the dash navigates to '#' (top of page). No condition hides the paragraph and no data/config supplies a real credit, so the failure path is concrete and unavoidable in production. Severity 'minor' is appropriate — visible unfinished content, but purely cosmetic.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Home StatsBar strips the 'roofing' qualifier from the unverified 40-year guarantee claim",
+  "file": "src/components/hero/StatsBar.tsx",
+  "line": 21,
+  "severity": "minor",
+  "detail": "The stat renders '40-year guarantee' with the bare label 'guarantee'. Per the content audit (§7 and defect-register item 14) the 40-year figure is roofing-only ('up to a 40 year guarantee' on roofing) and must be verified before reuse; every other surface qualifies it correctly ('Guarantee on roofing, up to' in the seeded statsCounters block, 'roofing guarantee' on /areas, 'Up to a 40-year guarantee on roofing' in QuoteAside). Scenario: a homeowner reads the home page as promising a 40-year guarantee on the whole extension — an overclaim on the site's most prominent trust strip that the company can't honour.",
+  "suggestedFix": "Change the label to 'roofing guarantee' (and ideally prefix 'up to'), matching the other components.",
+  "dimension": 4,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Confirmed by tracing the render path. src/components/hero/StatsBar.tsx:21 renders `{ value: SITE.stats.guaranteeYears, suffix: '-year', label: 'guarantee' }` = \"40-year guarantee\" with no roofing qualifier and no \"up to\". src/lib/site.ts:28 itself annotates the value as roofing-only per audit §7, and docs/CONTENT-AUDIT.md line 173 records the original claim as 'up to a 40 year guarantee' on roofing (defect item 14 says verify before reuse). The hardcoded StatsBar is what the home page actually renders (src/app/(frontend)/page.tsx:127) — the correctly-labelled seeded CMS statsCounters block ('Guarantee on roofing, up to', src/seed/index.ts:318) is used only on about-us/what-we-do, so it does not rescue the home page. All other surfaces qualify the claim (areas/page.tsx:108 'roofing guarantee'; QuoteAside.tsx:14 'Up to a 40-year guarantee on roofing'). The DESIGN-BRIEF counter example ('10-year guarantee') is style guidance, not a sourced claim, so it does not license the unqualified label. Concrete failure: home-page visitors read a whole-extension 40-year guarantee the company only offers (up to) on roofing. Severity minor is appropriate: content/compliance overclaim, one-line label fix, no functional breakage.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "US spelling 'meters' in the seeded planning-permission FAQ (renders on /faq and in FAQPage schema)",
+  "file": "src/seed/index.ts",
+  "line": 134,
+  "severity": "minor",
+  "detail": "The 'Do I need planning permission?' answer contains 'a 3-meter projection or 4 meters for detached homes' — US spelling carried verbatim from the old site into the seed and confirmed present in eazybase.db, so it renders to users on /faq and is emitted in the FAQPage JSON-LD. The rest of the rebuild consistently uses UK English (the estimator says 'metres'). The audit's copy-quality bar calls for UK English throughout.",
+  "suggestedFix": "Change to '3-metre projection or 4 metres' in the seed and update the existing FAQ doc in the CMS (the seed skips when docs exist, so the live row needs a direct edit or re-sync).",
+  "dimension": 4,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified end-to-end: the US spelling 'a 3-meter projection or 4 meters' exists at src/seed/index.ts:134, is present in the live eazybase.db row (seed skips when docs exist, so the live row needs a direct edit), and the /faq page (src/app/(frontend)/faq/page.tsx) renders the answer to users and emits it verbatim in FAQPage JSON-LD. The rest of the rebuild consistently uses UK 'metres' (InstantQuoteWizard aria-valuetext, pricing.ts clampMetres, area copy). One caveat: the finding overstates the audit — CONTENT-AUDIT.md line 72 says FAQ pairs 'migrate as-is' and no explicit UK-English rule exists — but the seed provably fixes spelling defects inside otherwise-verbatim copy where the audit caught them (the 'compete/competing with electric sockets' fixes at seed lines 323/459 cite the defect register), so 'meters' is the same defect class ('brick and motor') that the audit's typo register simply missed. Real user-facing copy defect, not a style opinion; minor severity is appropriate.",
+   "severityAdjustment": "unchanged"
+  }
+ },
+ {
+  "title": "Stale/zombie eazybase server occupies port 3000 and hangs all requests",
+  "file": "C:\\Users\\info\\GITHUB\\eazybase",
+  "severity": "minor",
+  "detail": "Environmental, not a code defect: a pre-existing node process (PID 4480, started 05/07/2026 15:00 from this repo's node_modules/next/dist/server/lib/start-server.js) is listening on :3000 but never responds (curl -sI times out after 15s). npm run start therefore fails with EADDRINUSE, and the permission system denied killing the unowned process. Verification was performed on port 3001 instead, where the same .next build works perfectly - confirming the hang is a dead process, not an app bug.",
+  "suggestedFix": "User should kill PID 4480 (taskkill /PID 4480 /F) before running npm run start on port 3000.",
+  "dimension": 5,
+  "verdict": {
+   "isReal": true,
+   "reasoning": "Verified live: PID 4480 is a node.exe process started 05/07/2026 15:00:40 running C:\\Users\\info\\GITHUB\\eazybase\\node_modules\\next\\dist\\server\\lib\\start-server.js, still listening on port 3000 (Get-NetTCPConnection confirms OwningProcess 4480 on :3000). curl to http://localhost:3000/ with an 8s timeout exits code 28 — the process accepts connections but never responds, so it is genuinely wedged. package.json's start script is plain `next start` (default port 3000), so npm run start will fail with EADDRINUSE until the process is killed. Every claim in the finding is reproducible. Caveat: this is environmental machine state, not a defect in the repo's code — no code change is implied — but it is a real, currently-live blocker of the standard start workflow with a correct, actionable fix (taskkill /PID 4480 /F), and 'minor' is the appropriate grade for an environmental note.",
+   "severityAdjustment": "unchanged"
+  }
+ }
+]

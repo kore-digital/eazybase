@@ -41,6 +41,16 @@ const formatGBP = (n: number) => `£${n.toLocaleString('en-GB')}`
 
 const initialQuoteState: QuoteActionState = { status: 'idle' }
 
+/** Inline field error, announced to screen readers and referenced by the input. */
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null
+  return (
+    <p id={id} role="alert" className="mt-1.5 text-sm text-red-600">
+      {message}
+    </p>
+  )
+}
+
 /* ------------------------------------------------------------ progress dots */
 
 function ProgressDots({ step }: { step: Step }) {
@@ -65,10 +75,10 @@ function ProgressDots({ step }: { step: Step }) {
               className={[
                 'flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-bold transition-colors duration-300',
                 done
-                  ? 'bg-brand-500 text-white'
+                  ? 'bg-brand-500 text-ink-950'
                   : current
-                    ? 'border-2 border-brand-500 bg-white text-brand-600'
-                    : 'border-2 border-ink-200 bg-white text-ink-400',
+                    ? 'border-2 border-brand-500 bg-white text-brand-800'
+                    : 'border-2 border-ink-200 bg-white text-ink-500',
               ].join(' ')}
               aria-current={current ? 'step' : undefined}
             >
@@ -115,9 +125,22 @@ export function InstantQuoteWizard() {
     }
   }
 
+  // On step change, move keyboard focus to the incoming step's heading —
+  // AnimatePresence unmounts the button that had focus, which would otherwise
+  // drop focus to <body>. The ref callback fires when the new heading mounts
+  // (after the exit animation in mode="wait").
+  const pendingHeadingFocus = useRef(false)
+  const focusStepHeading = (el: HTMLHeadingElement | null) => {
+    if (el && pendingHeadingFocus.current) {
+      pendingHeadingFocus.current = false
+      el.focus()
+    }
+  }
+
   const go = (next: Step) => {
     setDirection(next > step ? 1 : -1)
     setStep(next)
+    pendingHeadingFocus.current = true
   }
 
   const chosenType = EXTENSION_TYPES.find((t) => t.key === typeKey)
@@ -142,15 +165,21 @@ export function InstantQuoteWizard() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    // data-quote-form: tells StickyMobileCTA to hide while the estimator is
+    // in view, so the fixed bar never overlays the active quote flow.
+    <div className="mx-auto max-w-3xl" data-quote-form>
       <ProgressDots step={step} />
 
-      <div className="relative mt-8 overflow-hidden">
+      <div className="relative mt-8 overflow-hidden" aria-live="polite">
         <AnimatePresence mode="wait" initial={false}>
           {/* ---------------------------------------------- step 1: type */}
           {step === 1 ? (
             <motion.div key="step-1" {...slide}>
-              <h2 className="text-center font-display text-xl font-semibold text-ink-900">
+              <h2
+                ref={focusStepHeading}
+                tabIndex={-1}
+                className="text-center font-display text-xl font-semibold text-ink-900 outline-none"
+              >
                 What would you like to build?
               </h2>
               <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
@@ -176,7 +205,7 @@ export function InstantQuoteWizard() {
                       <span className="mt-2 block font-display text-sm font-semibold text-ink-900">
                         {t.label}
                       </span>
-                      <span className="mt-0.5 block text-xs leading-snug text-ink-400">
+                      <span className="mt-0.5 block text-xs leading-snug text-ink-500">
                         {t.blurb}
                       </span>
                     </button>
@@ -189,10 +218,14 @@ export function InstantQuoteWizard() {
           {/* ---------------------------------------------- step 2: size */}
           {step === 2 ? (
             <motion.div key="step-2" {...slide}>
-              <h2 className="text-center font-display text-xl font-semibold text-ink-900">
+              <h2
+                ref={focusStepHeading}
+                tabIndex={-1}
+                className="text-center font-display text-xl font-semibold text-ink-900 outline-none"
+              >
                 Roughly how big{chosenType ? ` will your ${typeNoun} be` : ''}?
               </h2>
-              <p className="mt-2 text-center text-sm text-ink-400">
+              <p className="mt-2 text-center text-sm text-ink-500">
                 Slide to your nearest guess — the survey pins down exact sizes later.
               </p>
 
@@ -208,7 +241,7 @@ export function InstantQuoteWizard() {
                       <label htmlFor={dim.id} className="font-display text-sm font-semibold text-ink-800">
                         {dim.name}
                       </label>
-                      <span className="font-display text-lg font-bold text-brand-600">
+                      <span className="font-display text-lg font-bold text-brand-800">
                         {dim.value.toFixed(1).replace(/\.0$/, '')} m
                       </span>
                     </div>
@@ -220,10 +253,10 @@ export function InstantQuoteWizard() {
                       step={SIZE_BOUNDS.step}
                       value={dim.value}
                       onChange={(e) => dim.set(Number(e.target.value))}
-                      className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-ink-100 accent-brand-500"
+                      className="eb-range mt-2"
                       aria-valuetext={`${dim.value} metres`}
                     />
-                    <div className="mt-1 flex justify-between text-xs text-ink-300">
+                    <div className="mt-1 flex justify-between text-xs text-ink-500">
                       <span>{SIZE_BOUNDS.min} m</span>
                       <span>{SIZE_BOUNDS.max} m</span>
                     </div>
@@ -254,7 +287,11 @@ export function InstantQuoteWizard() {
           {/* ---------------------------------------------- step 3: spec */}
           {step === 3 ? (
             <motion.div key="step-3" {...slide}>
-              <h2 className="text-center font-display text-xl font-semibold text-ink-900">
+              <h2
+                ref={focusStepHeading}
+                tabIndex={-1}
+                className="text-center font-display text-xl font-semibold text-ink-900 outline-none"
+              >
                 Which finish level suits you?
               </h2>
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -279,12 +316,12 @@ export function InstantQuoteWizard() {
                       <span className="font-display text-base font-bold text-ink-900">
                         {spec.label}
                         {spec.key === 'premium' ? (
-                          <span className="ml-2 rounded-sm bg-brand-500 px-1.5 py-0.5 align-middle font-display text-[10px] font-bold tracking-wide text-white uppercase">
+                          <span className="ml-2 rounded-sm bg-brand-500 px-1.5 py-0.5 align-middle font-display text-[10px] font-bold tracking-wide text-ink-950 uppercase">
                             Popular
                           </span>
                         ) : null}
                       </span>
-                      <span className="mt-1 text-xs leading-snug text-ink-400">{spec.blurb}</span>
+                      <span className="mt-1 text-xs leading-snug text-ink-500">{spec.blurb}</span>
                       <ul className="mt-4 space-y-2">
                         {spec.inclusions.map((item) => (
                           <li key={item} className="flex items-start gap-2 text-xs leading-snug text-ink-600">
@@ -310,9 +347,13 @@ export function InstantQuoteWizard() {
             <motion.div key="step-4" {...slide}>
               {/* Indicative range */}
               <div className="rounded-xl bg-ink-900 px-6 py-10 text-center text-white">
-                <p className="font-display text-xs font-semibold tracking-[0.2em] text-brand-400 uppercase">
+                <h2
+                  ref={focusStepHeading}
+                  tabIndex={-1}
+                  className="font-display text-xs font-semibold tracking-[0.2em] text-brand-400 uppercase outline-none"
+                >
                   Your indicative range
-                </p>
+                </h2>
                 <p className="mt-4 font-display text-4xl font-bold sm:text-5xl">
                   <AnimatedCounter value={range.low} prefix="£" duration={1.2} />
                   <span className="mx-2 text-ink-400">–</span>
@@ -373,7 +414,7 @@ export function InstantQuoteWizard() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label htmlFor="iq-first-name" className={labelClass}>
-                        First name <span className="text-brand-600">*</span>
+                        First name <span className="text-brand-800">*</span>
                       </label>
                       <input
                         id="iq-first-name"
@@ -382,15 +423,15 @@ export function InstantQuoteWizard() {
                         required
                         autoComplete="given-name"
                         defaultValue={state.values?.firstName}
+                        aria-invalid={state.fieldErrors?.firstName ? true : undefined}
+                        aria-describedby={state.fieldErrors?.firstName ? 'iq-first-name-error' : undefined}
                         className={inputClass}
                       />
-                      {state.fieldErrors?.firstName ? (
-                        <p className="mt-1.5 text-sm text-red-600">{state.fieldErrors.firstName}</p>
-                      ) : null}
+                      <FieldError id="iq-first-name-error" message={state.fieldErrors?.firstName} />
                     </div>
                     <div>
                       <label htmlFor="iq-last-name" className={labelClass}>
-                        Last name <span className="text-brand-600">*</span>
+                        Last name <span className="text-brand-800">*</span>
                       </label>
                       <input
                         id="iq-last-name"
@@ -399,15 +440,15 @@ export function InstantQuoteWizard() {
                         required
                         autoComplete="family-name"
                         defaultValue={state.values?.lastName}
+                        aria-invalid={state.fieldErrors?.lastName ? true : undefined}
+                        aria-describedby={state.fieldErrors?.lastName ? 'iq-last-name-error' : undefined}
                         className={inputClass}
                       />
-                      {state.fieldErrors?.lastName ? (
-                        <p className="mt-1.5 text-sm text-red-600">{state.fieldErrors.lastName}</p>
-                      ) : null}
+                      <FieldError id="iq-last-name-error" message={state.fieldErrors?.lastName} />
                     </div>
                     <div>
                       <label htmlFor="iq-email" className={labelClass}>
-                        Email <span className="text-brand-600">*</span>
+                        Email <span className="text-brand-800">*</span>
                       </label>
                       <input
                         id="iq-email"
@@ -416,15 +457,15 @@ export function InstantQuoteWizard() {
                         required
                         autoComplete="email"
                         defaultValue={state.values?.email}
+                        aria-invalid={state.fieldErrors?.email ? true : undefined}
+                        aria-describedby={state.fieldErrors?.email ? 'iq-email-error' : undefined}
                         className={inputClass}
                       />
-                      {state.fieldErrors?.email ? (
-                        <p className="mt-1.5 text-sm text-red-600">{state.fieldErrors.email}</p>
-                      ) : null}
+                      <FieldError id="iq-email-error" message={state.fieldErrors?.email} />
                     </div>
                     <div>
                       <label htmlFor="iq-phone" className={labelClass}>
-                        Phone <span className="text-brand-600">*</span>
+                        Phone <span className="text-brand-800">*</span>
                       </label>
                       <input
                         id="iq-phone"
@@ -436,15 +477,15 @@ export function InstantQuoteWizard() {
                         pattern="^(\+44|0)[\d\s().-]{9,14}$"
                         title="A UK phone number, starting 0 or +44"
                         defaultValue={state.values?.phone}
+                        aria-invalid={state.fieldErrors?.phone ? true : undefined}
+                        aria-describedby={state.fieldErrors?.phone ? 'iq-phone-error' : undefined}
                         className={inputClass}
                       />
-                      {state.fieldErrors?.phone ? (
-                        <p className="mt-1.5 text-sm text-red-600">{state.fieldErrors.phone}</p>
-                      ) : null}
+                      <FieldError id="iq-phone-error" message={state.fieldErrors?.phone} />
                     </div>
                     <div className="sm:col-span-2">
                       <label htmlFor="iq-postcode" className={labelClass}>
-                        Postcode <span className="text-brand-600">*</span>
+                        Postcode <span className="text-brand-800">*</span>
                       </label>
                       <input
                         id="iq-postcode"
@@ -455,11 +496,11 @@ export function InstantQuoteWizard() {
                         pattern="^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$"
                         title="A UK postcode, e.g. BB1 2AB"
                         defaultValue={state.values?.postcode}
+                        aria-invalid={state.fieldErrors?.postcode ? true : undefined}
+                        aria-describedby={state.fieldErrors?.postcode ? 'iq-postcode-error' : undefined}
                         className={`${inputClass} sm:max-w-xs`}
                       />
-                      {state.fieldErrors?.postcode ? (
-                        <p className="mt-1.5 text-sm text-red-600">{state.fieldErrors.postcode}</p>
-                      ) : null}
+                      <FieldError id="iq-postcode-error" message={state.fieldErrors?.postcode} />
                     </div>
                   </div>
 
@@ -470,7 +511,7 @@ export function InstantQuoteWizard() {
                   >
                     {isPending ? 'Sending…' : 'Send me my accurate quote'}
                   </button>
-                  <p className="text-xs text-ink-400">
+                  <p className="text-xs text-ink-500">
                     Your estimate details come through with your enquiry, so we can pick up exactly
                     where you left off.
                   </p>
@@ -503,7 +544,7 @@ export function InstantQuoteWizard() {
 
       {/* Range summary while mid-wizard, once enough is chosen */}
       {step < 4 && typeKey ? (
-        <p className="mt-8 text-center text-xs text-ink-300">
+        <p className="mt-8 text-center text-xs text-ink-500">
           {formatGBP(SPEC_LEVELS[0].ratePerSqm)}–{formatGBP(SPEC_LEVELS[SPEC_LEVELS.length - 1].ratePerSqm)}{' '}
           per m² depending on specification — indicative guide rates, refined at survey.
         </p>

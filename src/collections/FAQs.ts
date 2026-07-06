@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdminOrEditor } from '../access/roles'
+import { collectionRevalidateHooks } from '../lib/revalidate-hooks'
 
 export const FAQs: CollectionConfig = {
   slug: 'faqs',
@@ -15,6 +16,8 @@ export const FAQs: CollectionConfig = {
     update: isAdminOrEditor,
     delete: isAdminOrEditor,
   },
+  // 'pages' too — faqList blocks can embed FAQ docs in the cached page tree.
+  hooks: collectionRevalidateHooks(['faqs', 'pages']),
   defaultSort: 'order',
   fields: [
     {

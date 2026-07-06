@@ -18,7 +18,8 @@ type Stat = {
 const STATS: Stat[] = [
   { value: SITE.stats.factoryWeeks, suffix: ' weeks', label: 'factory build' },
   { prefix: 'under ', value: Math.ceil(SITE.stats.installDays / 7), suffix: ' week', label: 'on-site install' },
-  { value: SITE.stats.guaranteeYears, suffix: '-year', label: 'guarantee' },
+  // Roofing-only claim (audit §7) — the qualifier must not be dropped.
+  { value: SITE.stats.guaranteeYears, suffix: '-year', label: 'roofing guarantee, up to' },
 ]
 
 export function StatsBar() {

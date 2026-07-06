@@ -30,6 +30,18 @@ export const publishedOrLoggedIn: Access = ({ req: { user } }) => {
 /** Field-level: only admins may read/set the field. */
 export const isAdminFieldLevel: FieldAccess = ({ req: { user } }) => roleOf(user) === 'admin'
 
+/**
+ * Field-level: admins read everyone's field; users read their OWN.
+ * Needed on users.role so /api/users/me returns `role` for editors —
+ * the editor overlay (src/components/editor/EditorOverlay.tsx) gates on it.
+ */
+export const isAdminOrSelfFieldLevel: FieldAccess = ({ req: { user }, id, doc }) => {
+  if (roleOf(user) === 'admin') return true
+  if (!user) return false
+  const docId = (doc as { id?: number | string } | undefined)?.id ?? id
+  return docId !== undefined && String(docId) === String(user.id)
+}
+
 /** Users collection: admins see everyone; others see only themselves. */
 export const isAdminOrSelf: Access = ({ req: { user } }) => {
   if (!user) return false

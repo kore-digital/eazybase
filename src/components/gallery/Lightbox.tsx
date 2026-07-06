@@ -92,6 +92,12 @@ export function Lightbox({ images, index, onClose, onNavigate }: LightboxProps) 
         if (e.target === e.currentTarget) onClose()
       }}
     >
+      {/* Announce navigation to screen readers — changing the dialog's
+          aria-label alone is not re-announced once the dialog has focus. */}
+      <p aria-live="polite" className="sr-only">
+        {`Image ${index + 1} of ${count}: ${image.alt}`}
+      </p>
+
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 sm:px-6">
         <p className="font-display text-sm font-semibold tracking-wide text-ink-300">
@@ -138,7 +144,7 @@ export function Lightbox({ images, index, onClose, onNavigate }: LightboxProps) 
               type="button"
               onClick={prev}
               aria-label="Previous image"
-              className="absolute top-1/2 left-2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none sm:left-4"
+              className="absolute top-1/2 left-2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-brand-500 hover:text-ink-950 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none sm:left-4"
             >
               <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden="true">
                 <path
@@ -155,7 +161,7 @@ export function Lightbox({ images, index, onClose, onNavigate }: LightboxProps) 
               type="button"
               onClick={next}
               aria-label="Next image"
-              className="absolute top-1/2 right-2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none sm:right-4"
+              className="absolute top-1/2 right-2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-brand-500 hover:text-ink-950 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none sm:right-4"
             >
               <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden="true">
                 <path

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdmin, isAdminOrEditor, publishedOrLoggedIn } from '../access/roles'
+import { collectionRevalidateHooks } from '../lib/revalidate-hooks'
 import { seoField } from '../fields/seo'
 
 export const Areas: CollectionConfig = {
@@ -16,6 +17,7 @@ export const Areas: CollectionConfig = {
     update: isAdminOrEditor,
     delete: isAdmin,
   },
+  hooks: collectionRevalidateHooks(['areas'], (doc) => (doc?.slug ? `area-${doc.slug}` : undefined)),
   fields: [
     {
       name: 'slug',

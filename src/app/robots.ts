@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-import { SITE } from '@/lib/site'
+import { BASE_URL } from '@/lib/base-url'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -11,6 +11,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/admin'],
       },
     ],
-    sitemap: `${SITE.domain}/sitemap.xml`,
+    sitemap: `${BASE_URL}/sitemap.xml`,
   }
 }

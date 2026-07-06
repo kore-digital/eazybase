@@ -1,6 +1,7 @@
 import type { Field, GlobalConfig } from 'payload'
 
 import { isAdminOrEditor } from '../access/roles'
+import { globalRevalidateHooks } from '../lib/revalidate-hooks'
 
 const navArray = (name: string): Field => ({
   name,
@@ -18,5 +19,6 @@ export const Navigation: GlobalConfig = {
     read: () => true,
     update: isAdminOrEditor,
   },
+  hooks: globalRevalidateHooks('navigation'),
   fields: [navArray('mainNav'), navArray('footerNav')],
 }

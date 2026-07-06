@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdminOrEditor } from '../access/roles'
+import { collectionRevalidateHooks } from '../lib/revalidate-hooks'
 
 export const Testimonials: CollectionConfig = {
   slug: 'testimonials',
@@ -15,6 +16,8 @@ export const Testimonials: CollectionConfig = {
     update: isAdminOrEditor,
     delete: isAdminOrEditor,
   },
+  // 'pages' too — testimonialStrip blocks can embed testimonial docs in the cached page tree.
+  hooks: collectionRevalidateHooks(['testimonials', 'pages']),
   fields: [
     {
       name: 'quote',

@@ -44,7 +44,7 @@ export function SectionHeading({
           className={[
             'mb-3 flex items-center gap-2.5 font-display text-xs font-semibold tracking-[0.2em] uppercase',
             centred ? 'justify-center' : '',
-            onDark ? 'text-brand-400' : 'text-brand-600',
+            onDark ? 'text-brand-400' : 'text-brand-800',
           ].join(' ')}
         >
           <span className="eb-block-accent h-2.5 w-4" aria-hidden="true" />

@@ -56,7 +56,14 @@ export default async function GalleryPage() {
 
   const heroHeading = page?.heroHeading ?? FALLBACK_TITLE
   const heroSub = page?.heroSub ?? FALLBACK_SUB
-  const ctaBlock = page?.sections?.find((s) => s.blockType === 'ctaBand')
+  const sections = page?.sections ?? []
+  const ctaBlock = sections.find((s) => s.blockType === 'ctaBand')
+  // Address the block row by its stable id (index as legacy fallback) so the
+  // edit path survives admin-side reorders. See src/components/editor/edit-api.ts.
+  const ctaBase =
+    page && ctaBlock
+      ? `pages:${page.id}:sections.${ctaBlock.id ? `r_${ctaBlock.id}` : sections.indexOf(ctaBlock)}`
+      : null
 
   const images = items.map(toGalleryImage).filter((img): img is GalleryImage => img !== null)
 
@@ -140,7 +147,12 @@ export default async function GalleryPage() {
                     afterAlt={pair.afterAlt}
                   />
                   {pair.caption ? (
-                    <p className="mt-3 text-center text-sm text-ink-500">{pair.caption}</p>
+                    <p
+                      className="mt-3 text-center text-sm text-ink-500"
+                      data-eb-edit={`gallery-items:${pair.id}:caption`}
+                    >
+                      {pair.caption}
+                    </p>
                   ) : null}
                 </Reveal>
               ))}
@@ -174,8 +186,20 @@ export default async function GalleryPage() {
       </section>
 
       <CTABand
-        heading={ctaBlock?.heading ?? 'Like what you see?'}
-        sub={ctaBlock?.body ?? undefined}
+        heading={
+          ctaBase && ctaBlock?.heading ? (
+            <span data-eb-edit={`${ctaBase}.heading`}>{ctaBlock.heading}</span>
+          ) : (
+            (ctaBlock?.heading ?? 'Like what you see?')
+          )
+        }
+        sub={
+          ctaBase && ctaBlock?.body ? (
+            <span data-eb-edit={`${ctaBase}.body`}>{ctaBlock.body}</span>
+          ) : (
+            (ctaBlock?.body ?? undefined)
+          )
+        }
       />
     </>
   )

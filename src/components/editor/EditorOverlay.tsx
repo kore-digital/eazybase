@@ -28,8 +28,12 @@ export function EditorOverlay() {
     fetch('/api/users/me', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { user?: EditorUser | null } | null) => {
+        // Payload's /api/users/me wraps the doc as { user: { …, role } }.
+        // `role` can be absent (e.g. field-level read access strips it) —
+        // treat that as "no editor" and stay invisible rather than crash.
         const u = data?.user
-        if (!cancelled && u && (u.role === 'admin' || u.role === 'editor')) {
+        const role = u?.role
+        if (!cancelled && u && (role === 'admin' || role === 'editor')) {
           setUser(u)
         }
       })

@@ -93,3 +93,12 @@ export const getSiteSettings = unstable_cache(
   ['site-settings'],
   { tags: ['site-settings'] },
 )
+
+export const getNavigation = unstable_cache(
+  async () => {
+    const payload = await getPayloadClient()
+    return payload.findGlobal({ slug: 'navigation' })
+  },
+  ['navigation'],
+  { tags: ['navigation'] },
+)

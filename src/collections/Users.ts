@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAdmin, isAdminFieldLevel, isAdminOrSelf } from '../access/roles'
+import { isAdmin, isAdminFieldLevel, isAdminOrSelf, isAdminOrSelfFieldLevel } from '../access/roles'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -48,8 +48,9 @@ export const Users: CollectionConfig = {
       required: true,
       saveToJWT: true,
       access: {
-        // Only admins can see or set roles.
-        read: isAdminFieldLevel,
+        // Only admins can set roles, but every user may read their OWN —
+        // /api/users/me must return `role` or the editor overlay never mounts.
+        read: isAdminOrSelfFieldLevel,
         create: isAdminFieldLevel,
         update: isAdminFieldLevel,
       },

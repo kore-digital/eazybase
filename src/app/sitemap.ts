@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 
+import { BASE_URL } from '@/lib/base-url'
 import { getAllAreas } from '@/lib/data'
-import { SITE } from '@/lib/site'
 
 const STATIC_ROUTES: { path: string; priority: number }[] = [
   { path: '/', priority: 1 },
@@ -20,13 +20,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...STATIC_ROUTES.map(({ path, priority }) => ({
-      url: `${SITE.domain}${path === '/' ? '/' : path}`,
+      url: `${BASE_URL}${path === '/' ? '/' : path}`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority,
     })),
     ...areas.map((area) => ({
-      url: `${SITE.domain}/areas/${area.slug}`,
+      url: `${BASE_URL}/areas/${area.slug}`,
       lastModified: new Date(area.updatedAt),
       changeFrequency: 'monthly' as const,
       priority: area.isHub ? 0.8 : 0.6,

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdminOrEditor } from '../access/roles'
+import { collectionRevalidateHooks } from '../lib/revalidate-hooks'
 
 export const Awards: CollectionConfig = {
   slug: 'awards',
@@ -15,6 +16,8 @@ export const Awards: CollectionConfig = {
     update: isAdminOrEditor,
     delete: isAdminOrEditor,
   },
+  // 'pages' too — awardBadge blocks can embed award docs in the cached page tree.
+  hooks: collectionRevalidateHooks(['awards', 'pages']),
   fields: [
     {
       name: 'title',

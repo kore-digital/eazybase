@@ -38,7 +38,13 @@ export function AreaTestimonials({ testimonials }: AreaTestimonialsProps) {
               </p>
             ) : null}
             <blockquote className="mt-3 flex-1 text-base leading-relaxed text-ink-600">
-              <p data-eb-edit={`testimonials:${t.id}:quote`}>“{t.quote}”</p>
+              {/* Decorative quotes live OUTSIDE the editable node so inline
+                  edits never bake them into the CMS quote field. */}
+              <p>
+                <span aria-hidden="true">“</span>
+                <span data-eb-edit={`testimonials:${t.id}:quote`}>{t.quote}</span>
+                <span aria-hidden="true">”</span>
+              </p>
             </blockquote>
             <figcaption className="mt-5 text-sm text-ink-500">
               <span className="font-semibold text-ink-800" data-eb-edit={`testimonials:${t.id}:author`}>

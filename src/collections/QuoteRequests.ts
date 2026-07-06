@@ -17,14 +17,53 @@ export const QuoteRequests: CollectionConfig = {
   },
   hooks: {
     afterChange: [
-      ({ doc, operation }) => {
-        if (operation === 'create') {
-          // Email notification stub — SMTP not configured yet.
-          console.log(
-            `[quote-requests] New ${doc.type ?? 'full'} quote request from ` +
-              `${doc.firstName ?? ''} ${doc.lastName ?? ''} <${doc.email ?? 'no email'}> ` +
-              `(postcode ${doc.postcode ?? '—'}). TODO: send notification email to info@eazybase.co.uk.`,
-          )
+      async ({ doc, operation }) => {
+        if (operation !== 'create') return
+
+        // Always log the lead summary — the reliable audit trail either way.
+        console.log(
+          `[quote-requests] New ${doc.type ?? 'full'} quote request from ` +
+            `${doc.firstName ?? ''} ${doc.lastName ?? ''} <${doc.email ?? 'no email'}> ` +
+            `(postcode ${doc.postcode ?? '—'}).`,
+        )
+
+        // Lead notification email via the Resend HTTP API (plain fetch — no
+        // SDK/SMTP dependency). The client must set RESEND_API_KEY (and
+        // optionally LEAD_NOTIFY_EMAIL) on deploy — see .env.example. Without
+        // a key we only log. Never blocks or fails the submission.
+        const apiKey = process.env.RESEND_API_KEY
+        if (!apiKey) return
+        try {
+          const to = process.env.LEAD_NOTIFY_EMAIL || 'info@eazybase.co.uk'
+          const est = doc.estimator ?? {}
+          const lines = [
+            `Type: ${doc.type ?? 'full'}`,
+            `Name: ${doc.firstName ?? ''} ${doc.lastName ?? ''}`,
+            `Email: ${doc.email ?? '—'}`,
+            `Phone: ${doc.phone ?? '—'}`,
+            `Postcode: ${doc.postcode ?? '—'}`,
+            doc.addressLine1 ? `Address: ${doc.addressLine1}${doc.town ? `, ${doc.town}` : ''}` : '',
+            doc.message ? `Message: ${doc.message}` : '',
+            est.extensionType ? `Extension: ${est.extensionType}` : '',
+            est.widthM ? `Size: ${est.widthM}m × ${est.depthM}m (${est.spec ?? '—'})` : '',
+            est.estimateLow ? `Estimate: £${est.estimateLow}–£${est.estimateHigh}` : '',
+          ].filter(Boolean)
+          const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              // Placeholder sender — swap for a verified eazybase.co.uk address in Resend.
+              from: 'EazyBase Leads <onboarding@resend.dev>',
+              to: [to],
+              subject: `New ${doc.type ?? 'full'} quote request — ${doc.firstName ?? ''} ${doc.lastName ?? ''}`,
+              text: lines.join('\n'),
+            }),
+          })
+          if (!res.ok) {
+            console.error(`[quote-requests] lead email failed: ${res.status} ${await res.text()}`)
+          }
+        } catch (err) {
+          console.error('[quote-requests] lead email errored:', err)
         }
       },
     ],

@@ -135,10 +135,16 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
         showChip(rect, 'saved')
         await revalidateContent(tagsForSave(parsed, response))
         router.refresh()
-      } catch {
+      } catch (err) {
         session.el.textContent = session.original
         setChip(null)
-        showToast('Could not save that change — the text has been restored.')
+        // edit-api errors carry user-appropriate messages (e.g. a row that
+        // was deleted/reordered in the admin since this page rendered).
+        showToast(
+          err instanceof Error && err.message
+            ? `${err.message} The text has been restored.`
+            : 'Could not save that change — the text has been restored.',
+        )
       }
     },
     [router, showChip, showToast],

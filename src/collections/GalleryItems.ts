@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { isAdminOrEditor } from '../access/roles'
+import { collectionRevalidateHooks } from '../lib/revalidate-hooks'
 
 export const GalleryItems: CollectionConfig = {
   slug: 'gallery-items',
@@ -15,6 +16,8 @@ export const GalleryItems: CollectionConfig = {
     update: isAdminOrEditor,
     delete: isAdminOrEditor,
   },
+  // 'pages' too — galleryStrip blocks can embed gallery items in the cached page tree.
+  hooks: collectionRevalidateHooks(['gallery-items', 'pages']),
   defaultSort: 'order',
   fields: [
     {
