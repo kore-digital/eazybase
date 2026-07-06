@@ -3,7 +3,7 @@ import type { Access, FieldAccess } from 'payload'
 export type Role = 'admin' | 'editor'
 
 /** Safely read the role off req.user (typed loosely so this file never races the generated types). */
-const roleOf = (user: unknown): Role | undefined =>
+export const roleOf = (user: unknown): Role | undefined =>
   (user as { role?: Role } | null | undefined)?.role ?? undefined
 
 /** Collection-level: only admins. */

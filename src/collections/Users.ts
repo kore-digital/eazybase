@@ -1,13 +1,21 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAdmin, isAdminFieldLevel, isAdminOrSelf, isAdminOrSelfFieldLevel } from '../access/roles'
+import {
+  isAdmin,
+  isAdminFieldLevel,
+  isAdminOrSelf,
+  isAdminOrSelfFieldLevel,
+  roleOf,
+} from '../access/roles'
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  labels: { singular: 'Team member', plural: 'Team' },
   admin: {
     useAsTitle: 'email',
     defaultColumns: ['email', 'role'],
-    group: 'Admin',
+    group: 'Settings',
+    hidden: ({ user }) => roleOf(user) !== 'admin',
   },
   auth: true,
   access: {

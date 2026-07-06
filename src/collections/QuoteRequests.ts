@@ -5,10 +5,11 @@ import { PROPERTY_TYPES, TIMELINES } from '../components/quote/pricing'
 
 export const QuoteRequests: CollectionConfig = {
   slug: 'quote-requests',
+  labels: { singular: 'Enquiry', plural: 'Enquiries' },
   admin: {
     useAsTitle: 'email',
     defaultColumns: ['firstName', 'lastName', 'email', 'type', 'status', 'createdAt'],
-    group: 'Admin',
+    group: 'Enquiries',
   },
   access: {
     create: anyone, // public form submissions
