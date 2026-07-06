@@ -2,6 +2,11 @@ import type { Metadata } from 'next'
 import { Montserrat, Open_Sans } from 'next/font/google'
 import React from 'react'
 
+import { Footer } from '@/components/layout/Footer'
+import { Header } from '@/components/layout/Header'
+import { StickyMobileCTA } from '@/components/layout/StickyMobileCTA'
+import { WhatsAppFloat } from '@/components/layout/WhatsAppFloat'
+
 import './styles.css'
 
 const montserrat = Montserrat({
@@ -31,7 +36,13 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
 
   return (
     <html lang="en-GB" className={`${montserrat.variable} ${openSans.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Header />
+        <main>{children}</main>
+        <Footer />
+        <StickyMobileCTA />
+        <WhatsAppFloat />
+      </body>
     </html>
   )
 }
