@@ -4,3 +4,4 @@ node_modules
 *.db
 *.db-*
 media
+.playwright-cli/
