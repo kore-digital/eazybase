@@ -1,5 +1,6 @@
-import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { s3Storage } from '@payloadcms/storage-s3'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -34,12 +35,35 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: sqliteAdapter({
-    client: {
-      url: process.env.DATABASE_URI || 'file:./eazybase.db',
-      authToken: process.env.DATABASE_AUTH_TOKEN,
+  // Supabase Postgres. Use the connection POOLER string (Supavisor) for
+  // serverless on Vercel — the direct 5432 connection exhausts under Functions.
+  // Schema is driven by committed migrations (`payload migrate`, run in the
+  // build) rather than live push; set PAYLOAD_DB_PUSH=true for quick local dev.
+  db: postgresAdapter({
+    pool: {
+      connectionString: process.env.DATABASE_URI || '',
     },
+    push: process.env.PAYLOAD_DB_PUSH === 'true',
   }),
   sharp,
-  plugins: [],
+  plugins: [
+    // Media files → Supabase Storage (S3-compatible). The plugin disables
+    // local disk for the media collection automatically.
+    s3Storage({
+      enabled: Boolean(process.env.S3_BUCKET),
+      collections: {
+        media: true,
+      },
+      bucket: process.env.S3_BUCKET || '',
+      config: {
+        endpoint: process.env.S3_ENDPOINT,
+        region: process.env.S3_REGION || 'us-east-1',
+        forcePathStyle: true, // required for Supabase Storage
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
+        },
+      },
+    }),
+  ],
 })
