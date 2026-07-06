@@ -1,7 +1,16 @@
 'use server'
 
 import { getPayloadClient } from '@/lib/data'
-import { clampMetres, estimateRange, getExtensionType, getSpec } from '@/components/quote/pricing'
+import {
+  clampMetres,
+  estimateRange,
+  estimateRangeFromArea,
+  getExtensionType,
+  getSizeBand,
+  getSpec,
+  PROPERTY_TYPES,
+  TIMELINES,
+} from '@/components/quote/pricing'
 
 /**
  * Shared server action for both conversion forms:
@@ -57,7 +66,9 @@ export async function submitQuoteRequest(
   _prev: QuoteActionState,
   formData: FormData,
 ): Promise<QuoteActionState> {
-  const type = str(formData, 'formType') === 'instant' ? 'instant' : 'full'
+  const formType = str(formData, 'formType')
+  const type: 'full' | 'instant' | 'assistant' =
+    formType === 'instant' ? 'instant' : formType === 'assistant' ? 'assistant' : 'full'
 
   const values: Record<string, string> = {
     firstName: str(formData, 'firstName', 80),
@@ -70,6 +81,16 @@ export async function submitQuoteRequest(
     message: str(formData, 'message', 4000),
     extensionType: str(formData, 'extensionType', 40),
   }
+
+  // New optional shared fields (assistant supplies these; ignored elsewhere).
+  // Validated against the known key sets so a tampered POST can't store junk.
+  const propertyTypeRaw = str(formData, 'propertyType', 40)
+  const propertyType = PROPERTY_TYPES.some((p) => p.key === propertyTypeRaw)
+    ? propertyTypeRaw
+    : ''
+  const timelineRaw = str(formData, 'timeline', 40)
+  const timeline = TIMELINES.some((t) => t.key === timelineRaw) ? timelineRaw : ''
+  const materialPreferences = str(formData, 'materialPreferences', 500)
 
   /* --------------------------------------------------------- spam checks */
   // Honeypot: a visually-hidden field humans never fill. Bots that fill it
@@ -119,6 +140,8 @@ export async function submitQuoteRequest(
   /* --------------------------------------------- estimator payload (instant) */
   let estimator: {
     extensionType?: string
+    sizeBand?: string
+    areaM2?: number
     widthM?: number
     depthM?: number
     spec?: string
@@ -126,7 +149,27 @@ export async function submitQuoteRequest(
     estimateHigh?: number
   } = {}
 
-  if (type === 'instant') {
+  if (type === 'assistant') {
+    // Assistant flow: size arrives as a band → representative m². Recompute the
+    // range server-side from the band area — never trust any client £ figure.
+    const typeKey = str(formData, 'estimatorType', 40)
+    const specKey = str(formData, 'estimatorSpec', 40)
+    const sizeBandKey = str(formData, 'estimatorSizeBand', 40)
+    const extType = getExtensionType(typeKey)
+    const spec = getSpec(specKey)
+    const band = getSizeBand(sizeBandKey)
+    if (extType && spec && band) {
+      const range = estimateRangeFromArea(extType.key, spec.key, band.areaM2)
+      estimator = {
+        extensionType: extType.label,
+        sizeBand: band.label,
+        areaM2: band.areaM2,
+        spec: spec.label,
+        estimateLow: range.low,
+        estimateHigh: range.high,
+      }
+    }
+  } else if (type === 'instant') {
     const typeKey = str(formData, 'estimatorType', 40)
     const specKey = str(formData, 'estimatorSpec', 40)
     const widthM = Number(str(formData, 'estimatorWidthM', 10))
@@ -178,6 +221,9 @@ export async function submitQuoteRequest(
         addressLine1: values.addressLine1 || undefined,
         town: values.town || undefined,
         message: values.message || undefined,
+        propertyType: propertyType || undefined,
+        timeline: timeline || undefined,
+        materialPreferences: materialPreferences || undefined,
         estimator,
         status: 'new',
       },

@@ -125,6 +125,45 @@ export const EXTENSION_TYPES: ExtensionType[] = [
   },
 ]
 
+/**
+ * Property type / "house style" — captured for the team (access & complexity).
+ * Does NOT change the headline range; stored on the lead for context.
+ */
+export const PROPERTY_TYPES = [
+  { key: 'detached', label: 'Detached' },
+  { key: 'semi', label: 'Semi-detached' },
+  { key: 'terraced', label: 'Terraced' },
+  { key: 'bungalow', label: 'Bungalow' },
+  { key: 'flat', label: 'Flat / Other' },
+] as const
+export type PropertyTypeKey = (typeof PROPERTY_TYPES)[number]['key']
+
+/**
+ * Size bands for the Assistant (chat) flow — each maps to a representative m²
+ * used to compute the indicative range. The wizard keeps its precise sliders.
+ */
+export const SIZE_BANDS = [
+  { key: 'compact', label: 'Compact (up to 15m²)', areaM2: 12 },
+  { key: 'medium', label: 'Medium (15–30m²)', areaM2: 22 },
+  { key: 'large', label: 'Large (30m²+)', areaM2: 36 },
+  { key: 'unsure', label: 'Not sure yet', areaM2: 22 },
+] as const
+export type SizeBandKey = (typeof SIZE_BANDS)[number]['key']
+
+/** Rough timeline — routing signal for the team, not a price input. */
+export const TIMELINES = [
+  { key: 'asap', label: 'As soon as possible' },
+  { key: '1-3m', label: '1–3 months' },
+  { key: '3-6m', label: '3–6 months' },
+  { key: 'exploring', label: 'Just exploring' },
+] as const
+export type TimelineKey = (typeof TIMELINES)[number]['key']
+
+/** Look up a size band by key (defensive for server use). */
+export function getSizeBand(key: string | null | undefined) {
+  return SIZE_BANDS.find((b) => b.key === key)
+}
+
 /** Slider bounds for the size step (metres). */
 export const SIZE_BOUNDS = {
   min: 2,
@@ -184,6 +223,28 @@ export function estimateRange(
   const midpoint = areaSqm * spec.ratePerSqm * type.multiplier
   return {
     areaSqm,
+    low: roundTo(midpoint * RANGE_SPREAD.low),
+    high: roundTo(midpoint * RANGE_SPREAD.high),
+  }
+}
+
+/**
+ * Area-based variant of the same model for the Assistant flow: the size band's
+ * representative m² is the chargeable area, then area × spec rate × type
+ * multiplier, spread into the same low–high band. Identical maths to
+ * {@link estimateRange}, just fed a band area instead of width × depth — so a
+ * chat lead and a wizard lead of the same size produce the same figures.
+ */
+export function estimateRangeFromArea(
+  typeKey: ExtensionTypeKey | string,
+  specKey: SpecKey | string,
+  areaM2: number,
+): { low: number; high: number } {
+  const spec = getSpec(specKey) ?? SPEC_LEVELS[0]
+  const type = getExtensionType(typeKey) ?? EXTENSION_TYPES[EXTENSION_TYPES.length - 1]
+  const area = Number.isFinite(areaM2) && areaM2 > 0 ? areaM2 : SIZE_BANDS[1].areaM2
+  const midpoint = area * spec.ratePerSqm * type.multiplier
+  return {
     low: roundTo(midpoint * RANGE_SPREAD.low),
     high: roundTo(midpoint * RANGE_SPREAD.high),
   }

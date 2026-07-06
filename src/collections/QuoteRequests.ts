@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, isAdmin, isAdminFieldLevel, isAdminOrEditor } from '../access/roles'
+import { PROPERTY_TYPES, TIMELINES } from '../components/quote/pricing'
 
 export const QuoteRequests: CollectionConfig = {
   slug: 'quote-requests',
@@ -75,6 +76,7 @@ export const QuoteRequests: CollectionConfig = {
       options: [
         { label: 'Full quote', value: 'full' },
         { label: 'Instant quote', value: 'instant' },
+        { label: 'Quote assistant', value: 'assistant' },
       ],
       defaultValue: 'full',
       required: true,
@@ -88,11 +90,29 @@ export const QuoteRequests: CollectionConfig = {
     { name: 'town', type: 'text' },
     { name: 'message', type: 'textarea' },
     {
+      name: 'propertyType',
+      type: 'select',
+      options: PROPERTY_TYPES.map((p) => ({ label: p.label, value: p.key })),
+      admin: { description: 'House style — access/complexity context; not a price input.' },
+    },
+    {
+      name: 'timeline',
+      type: 'select',
+      options: TIMELINES.map((t) => ({ label: t.label, value: t.key })),
+    },
+    {
+      name: 'materialPreferences',
+      type: 'text',
+      admin: { description: 'Free-text material preferences (e.g. brick, render, bi-folds).' },
+    },
+    {
       name: 'estimator',
       type: 'group',
-      admin: { description: 'Instant-quote estimator inputs and indicative range.' },
+      admin: { description: 'Estimator inputs and indicative range (instant wizard + assistant).' },
       fields: [
         { name: 'extensionType', type: 'text' },
+        { name: 'sizeBand', type: 'text' },
+        { name: 'areaM2', type: 'number' },
         { name: 'widthM', type: 'number' },
         { name: 'depthM', type: 'number' },
         { name: 'spec', type: 'text' },

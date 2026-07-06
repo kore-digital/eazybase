@@ -529,7 +529,7 @@ export interface Area {
  */
 export interface QuoteRequest {
   id: number;
-  type: 'full' | 'instant';
+  type: 'full' | 'instant' | 'assistant';
   firstName: string;
   lastName: string;
   email: string;
@@ -539,10 +539,21 @@ export interface QuoteRequest {
   town?: string | null;
   message?: string | null;
   /**
-   * Instant-quote estimator inputs and indicative range.
+   * House style — access/complexity context; not a price input.
+   */
+  propertyType?: ('detached' | 'semi' | 'terraced' | 'bungalow' | 'flat') | null;
+  timeline?: ('asap' | '1-3m' | '3-6m' | 'exploring') | null;
+  /**
+   * Free-text material preferences (e.g. brick, render, bi-folds).
+   */
+  materialPreferences?: string | null;
+  /**
+   * Estimator inputs and indicative range (instant wizard + assistant).
    */
   estimator?: {
     extensionType?: string | null;
+    sizeBand?: string | null;
+    areaM2?: number | null;
     widthM?: number | null;
     depthM?: number | null;
     spec?: string | null;
@@ -993,10 +1004,15 @@ export interface QuoteRequestsSelect<T extends boolean = true> {
   addressLine1?: T;
   town?: T;
   message?: T;
+  propertyType?: T;
+  timeline?: T;
+  materialPreferences?: T;
   estimator?:
     | T
     | {
         extensionType?: T;
+        sizeBand?: T;
+        areaM2?: T;
         widthM?: T;
         depthM?: T;
         spec?: T;
