@@ -32,6 +32,7 @@ export default buildConfig({
         Logo: '/components/admin/Logo#Logo',
         Icon: '/components/admin/Icon#Icon',
       },
+      beforeDashboard: ['/components/admin/Dashboard#Dashboard'],
     },
   },
   collections: [Pages, Areas, FAQs, Testimonials, GalleryItems, Awards, Media, QuoteRequests, Users],
