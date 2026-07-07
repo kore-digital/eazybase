@@ -3,16 +3,18 @@ import { geoMercator, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import worldTopo from 'world-atlas/countries-110m.json'
 
+import { VisitorMapClient, type MapPoint } from './VisitorMapClient'
+
 /**
- * Server-rendered SVG world map with brand-green dots at visitor cities (sized
- * by visits). The projection auto-fits to wherever the visitors are — so a
- * UK-only audience zooms to the UK — with a UK default when there's no data.
- * All inline SVG: no client JS, no external tiles (admin CSP-safe).
+ * Computes the world map paths + projects visitor cities to SVG coordinates
+ * (server-side, so d3-geo/world-atlas never ship to the client), then hands the
+ * result to a thin client layer that adds the pulse animation + hover tooltips.
+ * The projection auto-fits to where the visitors are (UK default when empty).
  */
 export type VisitorPoint = { name: string; lat: number; lng: number; count: number }
 
-const W = 640
-const H = 380
+const W = 720
+const H = 420
 
 export function VisitorMap({ points }: { points: VisitorPoint[] }) {
   const topo = worldTopo as any
@@ -23,49 +25,33 @@ export function VisitorMap({ points }: { points: VisitorPoint[] }) {
   if (valid.length >= 2) {
     projection.fitExtent(
       [
-        [36, 30],
-        [W - 36, H - 30],
+        [48, 54],
+        [W - 48, H - 40],
       ],
       { type: 'MultiPoint', coordinates: valid.map((p) => [p.lng, p.lat]) } as any,
     )
-    if (projection.scale() > 2600) {
+    if (projection.scale() > 2400) {
       const mLng = valid.reduce((a, p) => a + p.lng, 0) / valid.length
       const mLat = valid.reduce((a, p) => a + p.lat, 0) / valid.length
-      projection.scale(2600).center([mLng, mLat]).translate([W / 2, H / 2])
+      projection.scale(2400).center([mLng, mLat]).translate([W / 2, H / 2])
     }
   } else if (valid.length === 1) {
-    projection.center([valid[0].lng, valid[0].lat]).scale(1800).translate([W / 2, H / 2])
+    projection.center([valid[0].lng, valid[0].lat]).scale(1700).translate([W / 2, H / 2])
   } else {
-    projection.center([-2, 54]).scale(1300).translate([W / 2, H / 2])
+    projection.center([-2, 54]).scale(1200).translate([W / 2, H / 2])
   }
 
   const path = geoPath(projection)
-  const maxCount = Math.max(1, ...valid.map((p) => p.count))
+  const countries: string[] = world.features.map((f: any) => path(f) ?? '').filter(Boolean)
 
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 12 }}
-      role="img"
-      aria-label="Map of visitor locations"
-    >
-      <rect width={W} height={H} fill="var(--theme-elevation-50)" />
-      {world.features.map((f: any, i: number) => (
-        <path key={i} d={path(f) ?? ''} fill="var(--theme-elevation-100)" stroke="var(--theme-elevation-200)" strokeWidth={0.5} />
-      ))}
-      {valid.map((p, i) => {
-        const xy = projection([p.lng, p.lat])
-        if (!xy) return null
-        const r = 5 + (p.count / maxCount) * 13
-        return (
-          <g key={i}>
-            <circle cx={xy[0]} cy={xy[1]} r={r} fill="#96c11f" fillOpacity={0.4} />
-            <circle cx={xy[0]} cy={xy[1]} r={3.2} fill="#6f9e14" />
-          </g>
-        )
-      })}
-    </svg>
-  )
+  const projected: MapPoint[] = valid
+    .map((p) => {
+      const xy = projection([p.lng, p.lat])
+      return xy ? { name: p.name, count: p.count, x: xy[0], y: xy[1] } : null
+    })
+    .filter((p): p is MapPoint => p !== null)
+
+  return <VisitorMapClient width={W} height={H} countries={countries} points={projected} />
 }
 
 export default VisitorMap
