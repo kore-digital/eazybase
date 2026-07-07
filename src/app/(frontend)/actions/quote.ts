@@ -1,6 +1,6 @@
 'use server'
 
-import { getPayloadClient } from '@/lib/data'
+import { getPayloadClient, getQuotePricing } from '@/lib/data'
 import {
   clampMetres,
   estimateRange,
@@ -9,8 +9,10 @@ import {
   getSizeBand,
   getSpec,
   PROPERTY_TYPES,
+  resolveQuotePricing,
   TIMELINES,
 } from '@/components/quote/pricing'
+import { distanceMilesBetween } from '@/lib/geo'
 
 /**
  * Shared server action for both conversion forms:
@@ -136,6 +138,10 @@ export async function submitQuoteRequest(
   }
 
   /* --------------------------------------------- estimator payload (instant) */
+  // Pricing is SIZE-ONLY (extension type/finish captured for context, not
+  // priced). Every £ figure and the survey fee are recomputed server-side from
+  // the raw inputs against the editable Quote pricing global — never trust the
+  // client. Fetched only for the estimator flows.
   let estimator: {
     extensionType?: string
     sizeBand?: string
@@ -145,49 +151,67 @@ export async function submitQuoteRequest(
     spec?: string
     estimateLow?: number
     estimateHigh?: number
+    surveyRequired?: boolean
+    surveyFee?: number
+    distanceMiles?: number
   } = {}
 
   if (type === 'assistant') {
     // Assistant flow: size arrives as a band → representative m². Recompute the
-    // range server-side from the band area — never trust any client £ figure.
+    // range server-side from the band area. Finish is captured, not priced.
     const typeKey = str(formData, 'estimatorType', 40)
     const specKey = str(formData, 'estimatorSpec', 40)
     const sizeBandKey = str(formData, 'estimatorSizeBand', 40)
     const extType = getExtensionType(typeKey)
     const spec = getSpec(specKey)
     const band = getSizeBand(sizeBandKey)
-    if (extType && spec && band) {
-      const range = estimateRangeFromArea(extType.key, spec.key, band.areaM2)
+    if (extType && band) {
+      const pricing = resolveQuotePricing(await getQuotePricing())
+      const range = estimateRangeFromArea(band.areaM2, pricing)
       estimator = {
         extensionType: extType.label,
         sizeBand: band.label,
         areaM2: band.areaM2,
-        spec: spec.label,
+        spec: spec?.label,
         estimateLow: range.low,
         estimateHigh: range.high,
       }
     }
   } else if (type === 'instant') {
     const typeKey = str(formData, 'estimatorType', 40)
-    const specKey = str(formData, 'estimatorSpec', 40)
     const widthM = Number(str(formData, 'estimatorWidthM', 10))
     const depthM = Number(str(formData, 'estimatorDepthM', 10))
     const extType = getExtensionType(typeKey)
-    const spec = getSpec(specKey)
-    if (extType && spec && Number.isFinite(widthM) && Number.isFinite(depthM)) {
-      // Recompute server-side — never trust client £ figures. Store the SAME
-      // clamped dimensions the estimate is computed from, so a tampered POST
-      // can't persist dimensions that contradict the stored range.
-      const width = clampMetres(widthM)
-      const depth = clampMetres(depthM)
-      const range = estimateRange(extType.key, spec.key, width, depth)
+    if (extType && Number.isFinite(widthM) && Number.isFinite(depthM)) {
+      const pricing = resolveQuotePricing(await getQuotePricing())
+      // Store the SAME clamped dimensions the estimate is computed from, so a
+      // tampered POST can't persist dimensions that contradict the range.
+      const width = clampMetres(widthM, pricing.minWidthM, pricing.maxWidthM, pricing.stepM)
+      const depth = clampMetres(depthM, pricing.minDepthM, pricing.maxDepthM, pricing.stepM)
+      const range = estimateRange(width, depth, pricing)
+
+      // Survey fee — recompute distance from the submitted postcode. Any bad
+      // postcode / geocode failure leaves no fee (distance stays undefined).
+      let surveyRequired = false
+      let distanceMiles: number | undefined
+      if (UK_POSTCODE_RE.test(values.postcode)) {
+        const miles = await distanceMilesBetween(values.postcode, pricing.basePostcode)
+        if (miles != null) {
+          distanceMiles = Math.round(miles * 10) / 10
+          surveyRequired = miles >= pricing.surveyDistanceMiles
+        }
+      }
+
       estimator = {
         extensionType: extType.label,
         widthM: width,
         depthM: depth,
-        spec: spec.label,
+        areaM2: range.areaSqm,
         estimateLow: range.low,
         estimateHigh: range.high,
+        surveyRequired,
+        surveyFee: surveyRequired ? pricing.surveyFee : 0,
+        distanceMiles,
       }
     }
   } else if (values.extensionType) {

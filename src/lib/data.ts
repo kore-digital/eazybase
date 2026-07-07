@@ -102,3 +102,22 @@ export const getNavigation = unstable_cache(
   ['navigation'],
   { tags: ['navigation'] },
 )
+
+/**
+ * Editable instant-quote pricing. Returns the raw global or null on failure —
+ * callers pass it through resolveQuotePricing() so a missing global / unrun
+ * migration degrades to the code defaults rather than a 500.
+ */
+export const getQuotePricing = unstable_cache(
+  async () => {
+    try {
+      const payload = await getPayloadClient()
+      return await payload.findGlobal({ slug: 'quote-pricing' })
+    } catch (err) {
+      console.error('[getQuotePricing] falling back to defaults:', err)
+      return null
+    }
+  },
+  ['quote-pricing'],
+  { tags: ['quote-pricing'] },
+)

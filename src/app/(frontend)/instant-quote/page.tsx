@@ -2,10 +2,11 @@ import type { Metadata } from 'next'
 import { RichText } from '@payloadcms/richtext-lexical/react'
 
 import { InstantQuoteWizard } from '@/components/quote/InstantQuoteWizard'
+import { resolveQuotePricing } from '@/components/quote/pricing'
 import { CTABand } from '@/components/ui/CTABand'
 import { Reveal } from '@/components/ui/Reveal'
 import { SectionHeading } from '@/components/ui/SectionHeading'
-import { getPage } from '@/lib/data'
+import { getPage, getQuotePricing } from '@/lib/data'
 
 /**
  * /instant-quote — a brand-new quick estimator (the old URL just duplicated
@@ -28,7 +29,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function InstantQuotePage() {
-  const page = await getPage('instant-quote')
+  const [page, pricingGlobal] = await Promise.all([getPage('instant-quote'), getQuotePricing()])
+  const pricing = resolveQuotePricing(pricingGlobal)
 
   const sections = page?.sections ?? []
   const introIndex = sections.findIndex((s) => s.blockType === 'richText')
@@ -80,7 +82,7 @@ export default async function InstantQuotePage() {
           ) : null}
 
           <Reveal delay={0.08}>
-            <InstantQuoteWizard />
+            <InstantQuoteWizard pricing={pricing} />
           </Reveal>
         </div>
       </section>

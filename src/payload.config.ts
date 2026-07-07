@@ -17,6 +17,7 @@ import { Awards } from './collections/Awards'
 import { QuoteRequests } from './collections/QuoteRequests'
 import { Navigation } from './globals/Navigation'
 import { SiteSettings } from './globals/SiteSettings'
+import { QuotePricing } from './globals/QuotePricing'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -36,7 +37,7 @@ export default buildConfig({
     },
   },
   collections: [Pages, Areas, FAQs, Testimonials, GalleryItems, Awards, Media, QuoteRequests, Users],
-  globals: [SiteSettings, Navigation],
+  globals: [SiteSettings, Navigation, QuotePricing],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

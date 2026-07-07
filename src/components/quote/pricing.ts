@@ -2,13 +2,12 @@
  * Instant-quote estimator model — the single source of truth for the
  * indicative pricing shown on /instant-quote.
  *
- * ┌────────────────────────────────────────────────────────────────────┐
- * │ PLACEHOLDER RATES — TUNE HERE.                                     │
- * │ The £/m² spec rates and the type multipliers below are indicative  │
- * │ placeholders for launch. EazyBase should adjust them to reflect    │
- * │ real factory costings. Everything on the estimator recalculates    │
- * │ from this file — no other file contains pricing numbers.           │
- * └────────────────────────────────────────────────────────────────────┘
+ * PRICING IS SIZE-ONLY. The indicative range is derived from the floor area
+ * (width × depth) alone via two straight-line formulas (see estimateRange).
+ * Extension TYPE and finish/SPEC are still captured on the lead for context
+ * but do NOT change the price. The numbers live in {@link DEFAULT_QUOTE_PRICING}
+ * and are overridable per-site via the editable "Quote pricing" global — the
+ * defaults here are the fallback used when the CMS is empty or unreachable.
  *
  * The number shown to visitors is ALWAYS a range labelled "indicative,
  * subject to survey" — never present it as a formal quote.
@@ -134,7 +133,9 @@ export const PROPERTY_TYPES = [
   { key: 'semi', label: 'Semi-detached' },
   { key: 'terraced', label: 'Terraced' },
   { key: 'bungalow', label: 'Bungalow' },
-  { key: 'flat', label: 'Flat / Other' },
+  // key stays 'flat' (the stored DB enum value) — only the label changed to
+  // "Out house" so no property-type enum migration is needed.
+  { key: 'flat', label: 'Out house' },
 ] as const
 export type PropertyTypeKey = (typeof PROPERTY_TYPES)[number]['key']
 
@@ -164,21 +165,79 @@ export function getSizeBand(key: string | null | undefined) {
   return SIZE_BANDS.find((b) => b.key === key)
 }
 
-/** Slider bounds for the size step (metres). */
-export const SIZE_BOUNDS = {
-  min: 2,
-  max: 8,
-  step: 0.5,
-  defaultWidth: 4,
-  defaultDepth: 3,
-} as const
+/**
+ * Editable pricing parameters — the size-only model plus the survey-fee and
+ * size-cap settings. Mirrored by the "Quote pricing" Payload global so the
+ * client can tune every number in the admin; these are the fallback defaults.
+ */
+export type QuotePricing = {
+  /** Base price (£) that always applies — covers up to `floorAreaM2`. */
+  priceFloor: number
+  /** Floor area (m²) included in `priceFloor` before the per-m² rate kicks in. */
+  floorAreaM2: number
+  /** £/m² added to the LOW (start) price for each m² above the floor area. */
+  startRatePerM2: number
+  /** £/m² flat rate that sets the HIGH (upper) price. */
+  flatRatePerM2: number
+  /** Survey call-out fee (£) added when a postcode is beyond the radius. */
+  surveyFee: number
+  /** Straight-line distance (miles) from `basePostcode` that triggers the fee. */
+  surveyDistanceMiles: number
+  /** Base/HQ postcode the survey distance is measured from. */
+  basePostcode: string
+  minWidthM: number
+  maxWidthM: number
+  minDepthM: number
+  maxDepthM: number
+  /** Slider granularity (m). */
+  stepM: number
+}
+
+export const DEFAULT_QUOTE_PRICING: QuotePricing = {
+  priceFloor: 22000,
+  floorAreaM2: 9,
+  startRatePerM2: 1000,
+  flatRatePerM2: 2321.43,
+  surveyFee: 300,
+  surveyDistanceMiles: 40,
+  basePostcode: 'BB2 7AN', // 495 Preston New Road, Blackburn
+  minWidthM: 3,
+  maxWidthM: 14,
+  minDepthM: 3,
+  maxDepthM: 4,
+  stepM: 0.5,
+}
 
 /**
- * Spread applied around the midpoint estimate to produce the low–high band.
- * Wide enough to be honest about survey variables (ground works, access,
- * services), tight enough to be useful.
+ * Merge the (nullable) values from the Quote pricing global with the defaults,
+ * so a missing/empty field never produces NaN pricing. Safe on client + server.
  */
-export const RANGE_SPREAD = { low: 0.92, high: 1.12 } as const
+export function resolveQuotePricing(
+  // Accepts the raw Quote-pricing global (fields are number | null | undefined),
+  // so keys are read as `unknown` and coerced with defaults.
+  raw?: { [K in keyof QuotePricing]?: unknown } | null,
+): QuotePricing {
+  const D = DEFAULT_QUOTE_PRICING
+  if (!raw) return D
+  const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
+  return {
+    priceFloor: num(raw.priceFloor, D.priceFloor),
+    floorAreaM2: num(raw.floorAreaM2, D.floorAreaM2),
+    startRatePerM2: num(raw.startRatePerM2, D.startRatePerM2),
+    flatRatePerM2: num(raw.flatRatePerM2, D.flatRatePerM2),
+    surveyFee: num(raw.surveyFee, D.surveyFee),
+    surveyDistanceMiles: num(raw.surveyDistanceMiles, D.surveyDistanceMiles),
+    basePostcode:
+      typeof raw.basePostcode === 'string' && raw.basePostcode.trim()
+        ? raw.basePostcode.trim()
+        : D.basePostcode,
+    minWidthM: num(raw.minWidthM, D.minWidthM),
+    maxWidthM: num(raw.maxWidthM, D.maxWidthM),
+    minDepthM: num(raw.minDepthM, D.minDepthM),
+    maxDepthM: num(raw.maxDepthM, D.maxDepthM),
+    stepM: num(raw.stepM, D.stepM),
+  }
+}
 
 /** Round to a friendly £250 so the range never looks spuriously precise. */
 const roundTo = (value: number, nearest = 250) => Math.round(value / nearest) * nearest
@@ -197,55 +256,51 @@ export function getExtensionType(key: string | null | undefined): ExtensionType 
   return EXTENSION_TYPES.find((t) => t.key === key)
 }
 
-/** Clamp a metre dimension into the slider bounds (defensive for server use). */
-export function clampMetres(value: number): number {
-  if (!Number.isFinite(value)) return SIZE_BOUNDS.min
-  const stepped = Math.round(value / SIZE_BOUNDS.step) * SIZE_BOUNDS.step
-  return Math.min(SIZE_BOUNDS.max, Math.max(SIZE_BOUNDS.min, stepped))
+/** Clamp a metre dimension onto the [min, max] step grid (defensive, server-safe). */
+export function clampMetres(value: number, min: number, max: number, step = 0.5): number {
+  if (!Number.isFinite(value)) return min
+  const stepped = Math.round(value / step) * step
+  return Math.min(max, Math.max(min, Math.round(stepped * 100) / 100))
+}
+
+/** Low/high band from a floor area (m²) — the shared size-only formula. */
+function bandFromArea(areaSqm: number, pricing: QuotePricing): { low: number; high: number } {
+  const low = Math.max(
+    pricing.priceFloor,
+    pricing.priceFloor + pricing.startRatePerM2 * (areaSqm - pricing.floorAreaM2),
+  )
+  const high = Math.max(pricing.priceFloor, pricing.flatRatePerM2 * areaSqm)
+  return { low: roundTo(low), high: roundTo(high) }
 }
 
 /**
- * The whole model: area × spec rate × type multiplier, spread into a band.
- * Used identically on the client (live preview) and the server (persisted
- * with the lead) so the stored figures always match what the visitor saw.
+ * The whole model — size only. Area (width × depth) drives a low (start) and a
+ * high (flat-rate) figure. Used identically on the client (live preview) and
+ * the server (persisted with the lead) so the stored figures always match what
+ * the visitor saw. Dimensions are clamped to the configured caps.
  */
 export function estimateRange(
-  typeKey: ExtensionTypeKey | string,
-  specKey: SpecKey | string,
   widthM: number,
   depthM: number,
+  pricing: QuotePricing = DEFAULT_QUOTE_PRICING,
 ): EstimateRange {
-  const spec = getSpec(specKey) ?? SPEC_LEVELS[0]
-  const type = getExtensionType(typeKey) ?? EXTENSION_TYPES[EXTENSION_TYPES.length - 1]
-  const width = clampMetres(widthM)
-  const depth = clampMetres(depthM)
+  const width = clampMetres(widthM, pricing.minWidthM, pricing.maxWidthM, pricing.stepM)
+  const depth = clampMetres(depthM, pricing.minDepthM, pricing.maxDepthM, pricing.stepM)
   const areaSqm = Math.round(width * depth * 10) / 10
-  const midpoint = areaSqm * spec.ratePerSqm * type.multiplier
-  return {
-    areaSqm,
-    low: roundTo(midpoint * RANGE_SPREAD.low),
-    high: roundTo(midpoint * RANGE_SPREAD.high),
-  }
+  const { low, high } = bandFromArea(areaSqm, pricing)
+  return { areaSqm, low, high }
 }
 
 /**
- * Area-based variant of the same model for the Assistant flow: the size band's
- * representative m² is the chargeable area, then area × spec rate × type
- * multiplier, spread into the same low–high band. Identical maths to
- * {@link estimateRange}, just fed a band area instead of width × depth — so a
- * chat lead and a wizard lead of the same size produce the same figures.
+ * Area-based variant for the Assistant flow: the size band's representative m²
+ * is the chargeable area, fed through the same size-only formula as
+ * {@link estimateRange} — so a chat lead and a wizard lead of the same size
+ * produce the same figures.
  */
 export function estimateRangeFromArea(
-  typeKey: ExtensionTypeKey | string,
-  specKey: SpecKey | string,
   areaM2: number,
+  pricing: QuotePricing = DEFAULT_QUOTE_PRICING,
 ): { low: number; high: number } {
-  const spec = getSpec(specKey) ?? SPEC_LEVELS[0]
-  const type = getExtensionType(typeKey) ?? EXTENSION_TYPES[EXTENSION_TYPES.length - 1]
   const area = Number.isFinite(areaM2) && areaM2 > 0 ? areaM2 : SIZE_BANDS[1].areaM2
-  const midpoint = area * spec.ratePerSqm * type.multiplier
-  return {
-    low: roundTo(midpoint * RANGE_SPREAD.low),
-    high: roundTo(midpoint * RANGE_SPREAD.high),
-  }
+  return bandFromArea(area, pricing)
 }

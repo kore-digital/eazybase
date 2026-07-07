@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { submitQuoteRequest, type QuoteActionState } from '@/app/(frontend)/actions/quote'
 import {
+  DEFAULT_QUOTE_PRICING,
   EXTENSION_TYPES,
   PROPERTY_TYPES,
   SIZE_BANDS,
@@ -12,6 +13,7 @@ import {
   TIMELINES,
   estimateRangeFromArea,
   getSizeBand,
+  type QuotePricing,
 } from '@/components/quote/pricing'
 import { FAQ_CHIPS, GREETING } from '@/components/quote/assistant/script'
 import { useReducedMotionSafe } from '@/components/ui/useReducedMotionSafe'
@@ -83,7 +85,11 @@ const inputClass =
 
 const formatGBP = (n: number) => `£${n.toLocaleString('en-GB')}`
 
-export function QuoteAssistant() {
+export function QuoteAssistant({
+  pricing = DEFAULT_QUOTE_PRICING,
+}: {
+  pricing?: QuotePricing
+}) {
   const reducedMotion = useReducedMotionSafe()
 
   const [messages, setMessages] = useState<Message[]>([])
@@ -190,10 +196,8 @@ export function QuoteAssistant() {
       setSubmitState('sending')
 
       const band = getSizeBand(merged.size)
-      const range =
-        merged.build && merged.spec && band
-          ? estimateRangeFromArea(merged.build, merged.spec, band.areaM2)
-          : null
+      // Pricing is size-only — finish is captured for the team, not priced.
+      const range = band ? estimateRangeFromArea(band.areaM2, pricing) : null
 
       const parts = contact.name.trim().split(/\s+/)
       const firstName = parts[0] || 'There'
@@ -268,7 +272,7 @@ export function QuoteAssistant() {
         )
       }
     },
-    [answers, pushUser, sayBot],
+    [answers, pushUser, sayBot, pricing],
   )
 
   return (

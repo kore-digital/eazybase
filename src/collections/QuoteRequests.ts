@@ -47,8 +47,11 @@ export const QuoteRequests: CollectionConfig = {
             doc.addressLine1 ? `Address: ${doc.addressLine1}${doc.town ? `, ${doc.town}` : ''}` : '',
             doc.message ? `Message: ${doc.message}` : '',
             est.extensionType ? `Extension: ${est.extensionType}` : '',
-            est.widthM ? `Size: ${est.widthM}m × ${est.depthM}m (${est.spec ?? '—'})` : '',
+            est.widthM ? `Size: ${est.widthM}m × ${est.depthM}m` : '',
             est.estimateLow ? `Estimate: £${est.estimateLow}–£${est.estimateHigh}` : '',
+            est.surveyRequired
+              ? `Survey fee: £${est.surveyFee ?? 0} (${est.distanceMiles ? `${Math.round(est.distanceMiles)} mi` : 'beyond radius'})`
+              : '',
           ].filter(Boolean)
           const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
@@ -119,6 +122,17 @@ export const QuoteRequests: CollectionConfig = {
         { name: 'spec', type: 'text' },
         { name: 'estimateLow', type: 'number' },
         { name: 'estimateHigh', type: 'number' },
+        {
+          name: 'surveyRequired',
+          type: 'checkbox',
+          admin: { description: 'Postcode is beyond the survey radius — a call-out fee applies.' },
+        },
+        { name: 'surveyFee', type: 'number', admin: { description: 'Survey call-out fee (£).' } },
+        {
+          name: 'distanceMiles',
+          type: 'number',
+          admin: { description: 'Straight-line miles from the HQ postcode.' },
+        },
       ],
     },
     {

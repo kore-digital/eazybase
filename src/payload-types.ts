@@ -104,10 +104,12 @@ export interface Config {
   globals: {
     'site-settings': SiteSetting;
     navigation: Navigation;
+    'quote-pricing': QuotePricing;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     navigation: NavigationSelect<false> | NavigationSelect<true>;
+    'quote-pricing': QuotePricingSelect<false> | QuotePricingSelect<true>;
   };
   locale: null;
   widgets: {
@@ -144,11 +146,11 @@ export interface UserAuthOperations {
 export interface Page {
   id: number;
   slug: string;
+  title: string;
   /**
    * Optional thumbnail shown on this page’s dashboard card. Falls back to the first image in the page.
    */
   cardImage?: (number | null) | Media;
-  title: string;
   heroHeading?: string | null;
   heroSub?: string | null;
   sections?:
@@ -563,6 +565,18 @@ export interface QuoteRequest {
     spec?: string | null;
     estimateLow?: number | null;
     estimateHigh?: number | null;
+    /**
+     * Postcode is beyond the survey radius — a call-out fee applies.
+     */
+    surveyRequired?: boolean | null;
+    /**
+     * Survey call-out fee (£).
+     */
+    surveyFee?: number | null;
+    /**
+     * Straight-line miles from the HQ postcode.
+     */
+    distanceMiles?: number | null;
   };
   status: 'new' | 'contacted' | 'closed';
   updatedAt: string;
@@ -703,8 +717,8 @@ export interface PayloadMigration {
  */
 export interface PagesSelect<T extends boolean = true> {
   slug?: T;
-  cardImage?: T;
   title?: T;
+  cardImage?: T;
   heroHeading?: T;
   heroSub?: T;
   sections?:
@@ -1023,6 +1037,9 @@ export interface QuoteRequestsSelect<T extends boolean = true> {
         spec?: T;
         estimateLow?: T;
         estimateHigh?: T;
+        surveyRequired?: T;
+        surveyFee?: T;
+        distanceMiles?: T;
       };
   status?: T;
   updatedAt?: T;
@@ -1159,6 +1176,65 @@ export interface Navigation {
   createdAt?: string | null;
 }
 /**
+ * Controls the /instant-quote estimator. Price = size only; extension type and finish do not change it.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quote-pricing".
+ */
+export interface QuotePricing {
+  id: number;
+  /**
+   * Base price (£) covering up to the floor area below.
+   */
+  priceFloor?: number | null;
+  /**
+   * Floor area (m²) included in the base price.
+   */
+  floorAreaM2?: number | null;
+  /**
+   * £/m² added to the LOW price for each m² above the floor area.
+   */
+  startRatePerM2?: number | null;
+  /**
+   * £/m² flat rate that sets the HIGH price.
+   */
+  flatRatePerM2?: number | null;
+  /**
+   * Fee (£) added beyond the radius. Deducted from final cost if they proceed.
+   */
+  surveyFee?: number | null;
+  /**
+   * Distance (miles) that triggers the fee.
+   */
+  surveyDistanceMiles?: number | null;
+  /**
+   * HQ postcode the distance is measured from.
+   */
+  basePostcode?: string | null;
+  /**
+   * Min width (m)
+   */
+  minWidthM?: number | null;
+  /**
+   * Max width (m)
+   */
+  maxWidthM?: number | null;
+  /**
+   * Min depth (m)
+   */
+  minDepthM?: number | null;
+  /**
+   * Max depth (m)
+   */
+  maxDepthM?: number | null;
+  /**
+   * Slider step (m).
+   */
+  stepM?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
@@ -1206,6 +1282,27 @@ export interface NavigationSelect<T extends boolean = true> {
         href?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quote-pricing_select".
+ */
+export interface QuotePricingSelect<T extends boolean = true> {
+  priceFloor?: T;
+  floorAreaM2?: T;
+  startRatePerM2?: T;
+  flatRatePerM2?: T;
+  surveyFee?: T;
+  surveyDistanceMiles?: T;
+  basePostcode?: T;
+  minWidthM?: T;
+  maxWidthM?: T;
+  minDepthM?: T;
+  maxDepthM?: T;
+  stepM?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

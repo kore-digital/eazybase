@@ -8,31 +8,31 @@ import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
 import {
   EXTENSION_TYPES,
   PROPERTY_TYPES,
-  SIZE_BOUNDS,
-  SPEC_LEVELS,
+  clampMetres,
   estimateRange,
   type ExtensionTypeKey,
   type PropertyTypeKey,
-  type SpecKey,
+  type QuotePricing,
 } from '@/components/quote/pricing'
 import { SuccessPanel } from '@/components/quote/SuccessPanel'
 import { TypeIcon } from '@/components/quote/TypeIcon'
 import { useSiteContact } from '@/components/layout/SiteContactProvider'
+import { distanceMilesBetween } from '@/lib/geo'
 import { formatPhone } from '@/lib/format'
 
 /**
- * The 3-step instant-quote estimator (brand-new build — the old
- * /instant-quote URL was a duplicate of the contact form and had no
- * calculator at all):
- *   1. extension type  →  2. size (width × depth sliders)  →  3. spec level
+ * The instant-quote estimator. Pricing is SIZE-ONLY (see pricing.ts):
+ *   1. extension type  →  2. size (width × depth sliders, capped)
+ *   →  3. property type  →  4. location (postcode → survey fee)  →  5. result
  * then an animated indicative £range + inline lead capture that persists the
  * estimator payload through the shared quote server action (type 'instant').
+ * Sizes beyond the caps route to a bespoke enquiry (WhatsApp + contact form).
  * The figure is ALWAYS presented as indicative, never as a formal quote.
  */
 
 type Step = 1 | 2 | 3 | 4 | 5
 
-const STEP_LABELS = ['Type', 'Size', 'Spec', 'Property'] as const
+const STEP_LABELS = ['Type', 'Size', 'Property', 'Location'] as const
 
 const inputClass =
   'w-full rounded-lg border border-ink-200 bg-white px-4 py-3 text-ink-800 placeholder:text-ink-300 transition-[box-shadow,border-color] duration-200 outline-none hover:border-ink-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25'
@@ -40,6 +40,8 @@ const inputClass =
 const labelClass = 'mb-1.5 block font-display text-sm font-semibold text-ink-800'
 
 const formatGBP = (n: number) => `£${n.toLocaleString('en-GB')}`
+
+const UK_POSTCODE_RE = /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$/
 
 const initialQuoteState: QuoteActionState = { status: 'idle' }
 
@@ -56,7 +58,8 @@ function PropertyIcon({ type, className }: { type: PropertyTypeKey; className?: 
     semi: <path d="M8 20 18 13 28 20 28 30 8 30 Z M28 22 34 17 40 22 40 30 28 30 Z" />,
     terraced: <path d="M6 21 13 16 20 21 20 30 6 30 Z M20 21 27 16 34 21 34 30 20 30 Z M34 21 41 16 44 18 44 30 34 30 Z" />,
     bungalow: <path d="M8 24 24 15 40 24 40 30 8 30 Z" />,
-    flat: <path d="M15 10 33 10 33 30 15 30 Z M19 14 22 14 22 17 19 17 Z M26 14 29 14 29 17 26 17 Z M19 20 22 20 22 23 19 23 Z M26 20 29 20 29 23 26 23 Z" />,
+    // 'flat' key, "Out house" label — a small pitched outbuilding with a door.
+    flat: <path d="M16 21 24 14 32 21 32 30 16 30 Z M22 24 26 24 26 30 22 30 Z" />,
   }
   return (
     <svg viewBox="0 0 48 40" className={className} fill="none" aria-hidden="true">
@@ -147,7 +150,7 @@ function ProgressDots({
 
 /* ------------------------------------------------------------------ wizard */
 
-export function InstantQuoteWizard() {
+export function InstantQuoteWizard({ pricing }: { pricing: QuotePricing }) {
   const reducedMotion = useReducedMotion()
   const { phone, phoneHref, whatsappHref } = useSiteContact()
 
@@ -155,10 +158,21 @@ export function InstantQuoteWizard() {
   const [maxStep, setMaxStep] = useState<Step>(1)
   const [direction, setDirection] = useState<1 | -1>(1)
   const [typeKey, setTypeKey] = useState<ExtensionTypeKey | null>(null)
-  const [widthM, setWidthM] = useState<number>(SIZE_BOUNDS.defaultWidth)
-  const [depthM, setDepthM] = useState<number>(SIZE_BOUNDS.defaultDepth)
-  const [specKey, setSpecKey] = useState<SpecKey | null>(null)
+  const [widthM, setWidthM] = useState<number>(() =>
+    clampMetres(4, pricing.minWidthM, pricing.maxWidthM, pricing.stepM),
+  )
+  const [depthM, setDepthM] = useState<number>(() =>
+    clampMetres(3, pricing.minDepthM, pricing.maxDepthM, pricing.stepM),
+  )
   const [propertyKey, setPropertyKey] = useState<PropertyTypeKey | null>(null)
+  const [bespokeOpen, setBespokeOpen] = useState(false)
+
+  // Location step: postcode → survey fee (recomputed authoritatively on submit).
+  const [postcode, setPostcode] = useState('')
+  const [postcodeError, setPostcodeError] = useState<string | null>(null)
+  const [checkingPostcode, setCheckingPostcode] = useState(false)
+  const [surveyFee, setSurveyFee] = useState(0)
+  const [distanceMiles, setDistanceMiles] = useState<number | null>(null)
 
   const [state, formAction, isPending] = useActionState<QuoteActionState, FormData>(
     submitQuoteRequest,
@@ -198,13 +212,40 @@ export function InstantQuoteWizard() {
     pendingHeadingFocus.current = true
   }
 
+  // Location step submit — geocode the postcode, work out the survey fee, then
+  // advance. A geocode failure just proceeds with no fee (the server, which is
+  // authoritative, will reach the same conclusion from the same postcode).
+  const checkPostcode = async () => {
+    const pc = postcode.trim()
+    if (!UK_POSTCODE_RE.test(pc)) {
+      setPostcodeError('Please enter a valid UK postcode.')
+      return
+    }
+    setPostcodeError(null)
+    setCheckingPostcode(true)
+    try {
+      const miles = await distanceMilesBetween(pc, pricing.basePostcode)
+      if (miles != null) {
+        setDistanceMiles(Math.round(miles * 10) / 10)
+        setSurveyFee(miles >= pricing.surveyDistanceMiles ? pricing.surveyFee : 0)
+      } else {
+        setDistanceMiles(null)
+        setSurveyFee(0)
+      }
+    } catch {
+      setDistanceMiles(null)
+      setSurveyFee(0)
+    } finally {
+      setCheckingPostcode(false)
+    }
+    setPostcode(pc.toUpperCase())
+    go(5)
+  }
+
   const chosenType = EXTENSION_TYPES.find((t) => t.key === typeKey)
-  const chosenSpec = SPEC_LEVELS.find((s) => s.key === specKey)
   /** Readable noun for sentences — "Something Else" would read oddly. */
   const typeNoun = chosenType && chosenType.key !== 'other' ? chosenType.label.toLowerCase() : 'extension'
-  const area = Math.round(widthM * depthM * 10) / 10
-  const range =
-    typeKey && specKey ? estimateRange(typeKey, specKey, widthM, depthM) : null
+  const range = estimateRange(widthM, depthM, pricing)
 
   const slide = reducedMotion
     ? {}
@@ -287,8 +328,22 @@ export function InstantQuoteWizard() {
               <div className="mx-auto mt-8 max-w-xl space-y-8">
                 {(
                   [
-                    { name: 'Width', value: widthM, set: setWidthM, id: 'iq-width' },
-                    { name: 'Depth', value: depthM, set: setDepthM, id: 'iq-depth' },
+                    {
+                      name: 'Width',
+                      value: widthM,
+                      set: setWidthM,
+                      id: 'iq-width',
+                      min: pricing.minWidthM,
+                      max: pricing.maxWidthM,
+                    },
+                    {
+                      name: 'Depth',
+                      value: depthM,
+                      set: setDepthM,
+                      id: 'iq-depth',
+                      min: pricing.minDepthM,
+                      max: pricing.maxDepthM,
+                    },
                   ] as const
                 ).map((dim) => (
                   <div key={dim.id}>
@@ -303,17 +358,17 @@ export function InstantQuoteWizard() {
                     <input
                       id={dim.id}
                       type="range"
-                      min={SIZE_BOUNDS.min}
-                      max={SIZE_BOUNDS.max}
-                      step={SIZE_BOUNDS.step}
+                      min={dim.min}
+                      max={dim.max}
+                      step={pricing.stepM}
                       value={dim.value}
                       onChange={(e) => dim.set(Number(e.target.value))}
                       className="eb-range mt-2"
                       aria-valuetext={`${dim.value} metres`}
                     />
                     <div className="mt-1 flex justify-between text-xs text-ink-500">
-                      <span>{SIZE_BOUNDS.min} m</span>
-                      <span>{SIZE_BOUNDS.max} m</span>
+                      <span>{dim.min} m</span>
+                      <span>{dim.max} m</span>
                     </div>
                   </div>
                 ))}
@@ -324,8 +379,41 @@ export function InstantQuoteWizard() {
                   aria-live="polite"
                 >
                   <span className="text-sm text-ink-500">Floor area: </span>
-                  <strong className="text-lg font-bold text-ink-900">{area} m²</strong>
+                  <strong className="text-lg font-bold text-ink-900">{range.areaSqm} m²</strong>
                 </p>
+
+                {/* Bespoke escape hatch — anything beyond the sliders' caps */}
+                <div className="rounded-lg border border-dashed border-ink-200 px-5 py-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setBespokeOpen((o) => !o)}
+                    aria-expanded={bespokeOpen}
+                    className="font-display text-sm font-semibold text-brand-800 underline-offset-4 hover:underline"
+                  >
+                    Bigger than {pricing.maxWidthM}m × {pricing.maxDepthM}m, or a different shape?
+                  </button>
+                  {bespokeOpen ? (
+                    <div className="mt-3">
+                      <p className="text-sm text-ink-600">
+                        No problem — we build bespoke too. Send us the details and we’ll price it up
+                        directly.
+                      </p>
+                      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                        <a
+                          href={whatsappHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="eb-btn bg-[#25D366] px-5 py-2.5 text-xs text-ink-950 hover:brightness-95"
+                        >
+                          WhatsApp us
+                        </a>
+                        <a href="/get-a-quote" className="eb-btn-dark px-5 py-2.5 text-xs">
+                          Send a bespoke enquiry
+                        </a>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <div className="mt-8 flex items-center justify-between">
@@ -339,73 +427,15 @@ export function InstantQuoteWizard() {
             </motion.div>
           ) : null}
 
-          {/* ---------------------------------------------- step 3: spec */}
+          {/* -------------------------------------- step 3: property type */}
           {step === 3 ? (
-            <motion.div key="step-3" {...slide}>
-              <h2
-                ref={focusStepHeading}
-                tabIndex={-1}
-                className="text-center font-display text-xl font-semibold text-ink-900 outline-none"
-              >
-                Which finish level suits you?
-              </h2>
-              <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                {SPEC_LEVELS.map((spec) => {
-                  const selected = specKey === spec.key
-                  return (
-                    <button
-                      key={spec.key}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => {
-                        setSpecKey(spec.key)
-                        go(4)
-                      }}
-                      className={[
-                        'group flex flex-col rounded-xl border-2 bg-white p-5 text-left transition-all duration-200',
-                        'hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-md',
-                        'focus-visible:ring-4 focus-visible:ring-brand-500/30 focus-visible:outline-none',
-                        selected ? 'border-brand-500 shadow-md' : 'border-ink-100',
-                      ].join(' ')}
-                    >
-                      <span className="font-display text-base font-bold text-ink-900">
-                        {spec.label}
-                        {spec.key === 'premium' ? (
-                          <span className="ml-2 rounded-sm bg-brand-500 px-1.5 py-0.5 align-middle font-display text-[10px] font-bold tracking-wide text-ink-950 uppercase">
-                            Popular
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="mt-1 text-xs leading-snug text-ink-500">{spec.blurb}</span>
-                      <ul className="mt-4 space-y-2">
-                        {spec.inclusions.map((item) => (
-                          <li key={item} className="flex items-start gap-2 text-xs leading-snug text-ink-600">
-                            <span aria-hidden="true" className="eb-block-accent mt-1 h-1.5 w-2.5 shrink-0" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="mt-8">
-                <button type="button" onClick={() => go(2)} className="text-sm font-semibold text-ink-500 underline-offset-4 hover:text-ink-800 hover:underline">
-                  ← Back
-                </button>
-              </div>
-            </motion.div>
-          ) : null}
-
-          {/* -------------------------------------- step 4: property type */}
-          {step === 4 ? (
             <motion.div key="step-property" {...slide}>
               <h2
                 ref={focusStepHeading}
                 tabIndex={-1}
                 className="text-center font-display text-xl font-semibold text-ink-900 outline-none"
               >
-                Last one — what type of property is it?
+                What type of property is it?
               </h2>
               <p className="mt-2 text-center text-sm text-ink-500">
                 It helps us plan access and groundwork. It won’t change your estimate.
@@ -420,7 +450,7 @@ export function InstantQuoteWizard() {
                       aria-pressed={selected}
                       onClick={() => {
                         setPropertyKey(p.key)
-                        go(5)
+                        go(4)
                       }}
                       className={[
                         'group rounded-xl border-2 bg-white p-4 text-center transition-all duration-200',
@@ -440,7 +470,7 @@ export function InstantQuoteWizard() {
               <div className="mt-8 text-center">
                 <button
                   type="button"
-                  onClick={() => go(3)}
+                  onClick={() => go(2)}
                   className="text-sm font-semibold text-ink-500 underline-offset-4 hover:text-ink-800 hover:underline"
                 >
                   ← Back
@@ -449,9 +479,73 @@ export function InstantQuoteWizard() {
             </motion.div>
           ) : null}
 
+          {/* -------------------------------------- step 4: location/postcode */}
+          {step === 4 ? (
+            <motion.div key="step-location" {...slide}>
+              <h2
+                ref={focusStepHeading}
+                tabIndex={-1}
+                className="text-center font-display text-xl font-semibold text-ink-900 outline-none"
+              >
+                Last one — what’s your postcode?
+              </h2>
+              <p className="mt-2 text-center text-sm text-ink-500">
+                We build from Blackburn. Jobs beyond {pricing.surveyDistanceMiles} miles include a
+                refundable £{pricing.surveyFee} survey call-out — we’ll show it clearly on your
+                estimate.
+              </p>
+
+              <div className="mx-auto mt-8 max-w-sm">
+                <label htmlFor="iq-loc-postcode" className={labelClass}>
+                  Postcode
+                </label>
+                <input
+                  id="iq-loc-postcode"
+                  type="text"
+                  autoComplete="postal-code"
+                  inputMode="text"
+                  value={postcode}
+                  onChange={(e) => {
+                    setPostcode(e.target.value)
+                    if (postcodeError) setPostcodeError(null)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      void checkPostcode()
+                    }
+                  }}
+                  placeholder="e.g. BB1 2AB"
+                  aria-invalid={postcodeError ? true : undefined}
+                  aria-describedby={postcodeError ? 'iq-loc-postcode-error' : undefined}
+                  className={inputClass}
+                />
+                <FieldError id="iq-loc-postcode-error" message={postcodeError ?? undefined} />
+              </div>
+
+              <div className="mt-8 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => go(3)}
+                  className="text-sm font-semibold text-ink-500 underline-offset-4 hover:text-ink-800 hover:underline"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void checkPostcode()}
+                  disabled={checkingPostcode}
+                  className="eb-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {checkingPostcode ? 'Checking…' : 'See my estimate'}
+                </button>
+              </div>
+            </motion.div>
+          ) : null}
+
           {/* --------------------------------------- step 5: result + lead */}
-          {step === 5 && range && chosenType && chosenSpec ? (
-            <motion.div key="step-4" {...slide}>
+          {step === 5 && chosenType ? (
+            <motion.div key="step-result" {...slide}>
               {/* Indicative range */}
               <div className="rounded-xl bg-ink-900 px-6 py-10 text-center text-white">
                 <h2
@@ -467,12 +561,24 @@ export function InstantQuoteWizard() {
                   <AnimatedCounter value={range.high} prefix="£" duration={1.6} />
                 </p>
                 <p className="mt-3 text-sm text-ink-300">
-                  indicative, subject to survey — for a {chosenSpec.label.toLowerCase()}-spec{' '}
-                  {typeNoun} of about {range.areaSqm} m²
+                  indicative, subject to survey — for a {typeNoun} of about {range.areaSqm} m²
                 </p>
+
+                {surveyFee > 0 ? (
+                  <div className="mx-auto mt-5 max-w-md rounded-lg border border-brand-400/30 bg-brand-500/10 px-4 py-3 text-sm text-brand-200">
+                    <span className="font-semibold text-white">+ {formatGBP(surveyFee)} survey fee</span>
+                    {distanceMiles ? (
+                      <span className="text-ink-300"> (you’re ~{Math.round(distanceMiles)} miles from us)</span>
+                    ) : null}
+                    <span className="mt-1 block text-xs text-ink-300">
+                      If you go ahead with the job, the survey fee is deducted from your final cost.
+                    </span>
+                  </div>
+                ) : null}
+
                 <p className="mx-auto mt-4 max-w-md text-xs leading-relaxed text-ink-400">
                   This is a guide range, not a formal quote. Every EazyBase project is priced
-                  properly after a free survey — ground works, access and your exact design all
+                  properly after a survey — ground works, access and your exact design all
                   shape the final figure.
                 </p>
                 <button
@@ -506,9 +612,9 @@ export function InstantQuoteWizard() {
                 <form action={formAction} onSubmit={stampElapsed} className="mt-5 space-y-4">
                   <input type="hidden" name="formType" value="instant" />
                   <input ref={elapsedRef} type="hidden" name="_eb_elapsed" defaultValue="" />
-                  {/* Estimator payload — the server recomputes the £range from these raw inputs. */}
+                  {/* Estimator payload — the server recomputes the £range and survey
+                      fee from these raw inputs (size-only; type is captured, not priced). */}
                   <input type="hidden" name="estimatorType" value={chosenType.key} />
-                  <input type="hidden" name="estimatorSpec" value={chosenSpec.key} />
                   <input type="hidden" name="estimatorWidthM" value={widthM} />
                   <input type="hidden" name="estimatorDepthM" value={depthM} />
                   {propertyKey ? (
@@ -605,7 +711,7 @@ export function InstantQuoteWizard() {
                         autoComplete="postal-code"
                         pattern="^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$"
                         title="A UK postcode, e.g. BB1 2AB"
-                        defaultValue={state.values?.postcode}
+                        defaultValue={state.values?.postcode ?? postcode}
                         aria-invalid={state.fieldErrors?.postcode ? true : undefined}
                         aria-describedby={state.fieldErrors?.postcode ? 'iq-postcode-error' : undefined}
                         className={`${inputClass} sm:max-w-xs`}
@@ -651,14 +757,6 @@ export function InstantQuoteWizard() {
           ) : null}
         </AnimatePresence>
       </div>
-
-      {/* Range summary while mid-wizard, once enough is chosen */}
-      {step < 4 && typeKey ? (
-        <p className="mt-8 text-center text-xs text-ink-500">
-          {formatGBP(SPEC_LEVELS[0].ratePerSqm)}–{formatGBP(SPEC_LEVELS[SPEC_LEVELS.length - 1].ratePerSqm)}{' '}
-          per m² depending on specification — indicative guide rates, refined at survey.
-        </p>
-      ) : null}
     </div>
   )
 }

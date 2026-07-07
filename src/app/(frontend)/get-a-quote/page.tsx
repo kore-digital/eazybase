@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 
 import { QuoteAssistant } from '@/components/quote/assistant/QuoteAssistant'
+import { resolveQuotePricing } from '@/components/quote/pricing'
 import { Reveal } from '@/components/ui/Reveal'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { SITE } from '@/lib/site'
-import { getPage } from '@/lib/data'
+import { getPage, getQuotePricing } from '@/lib/data'
 
 /**
  * /get-a-quote — the conversational Quote Assistant ("Eazy"). A chat-led
@@ -34,7 +35,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function GetAQuotePage() {
-  const page = await getPage('get-a-quote')
+  const [page, pricingGlobal] = await Promise.all([getPage('get-a-quote'), getQuotePricing()])
+  const pricing = resolveQuotePricing(pricingGlobal)
 
   return (
     <section
@@ -103,7 +105,7 @@ export default async function GetAQuotePage() {
 
         {/* Right: the assistant */}
         <Reveal delay={0.12}>
-          <QuoteAssistant />
+          <QuoteAssistant pricing={pricing} />
         </Reveal>
       </div>
     </section>
