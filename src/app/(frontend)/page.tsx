@@ -12,6 +12,7 @@ import React from 'react'
 import { Hero } from '@/components/hero/Hero'
 import { StatsBar } from '@/components/hero/StatsBar'
 import { AwardStrip } from '@/components/home/AwardStrip'
+import { FacilityShowcase } from '@/components/home/FacilityShowcase'
 import { GalleryTeaser } from '@/components/home/GalleryTeaser'
 import { HomeIntro } from '@/components/home/HomeIntro'
 import { BuildStory } from '@/components/home/build-story/BuildStory'
@@ -140,6 +141,9 @@ export default async function HomePage() {
       {intro ? (
         <HomeIntro block={intro.block} editBase={editBase(intro.index)} image={introImage} />
       ) : null}
+
+      {/* 3.5 — HQ + fleet credibility band */}
+      <FacilityShowcase />
 
       {/* 4 — Use cases: Kids Playrooms / Home Office / Dining Rooms / Kitchens */}
       {tabs.length > 0 ? (
