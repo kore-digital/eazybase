@@ -1132,6 +1132,10 @@ export interface SiteSetting {
   socials?: {
     facebook?: string | null;
     instagram?: string | null;
+    /**
+     * e.g. https://www.tiktok.com/@eazybase2
+     */
+    tiktok?: string | null;
     yell?: string | null;
     google?: string | null;
   };
@@ -1249,6 +1253,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
     | {
         facebook?: T;
         instagram?: T;
+        tiktok?: T;
         yell?: T;
         google?: T;
       };

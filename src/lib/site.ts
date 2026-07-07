@@ -19,6 +19,7 @@ export const SITE = {
   social: {
     facebook: 'https://www.facebook.com/EazyBase',
     instagram: 'https://www.instagram.com/eazybaseextensions',
+    tiktok: 'https://www.tiktok.com/@eazybase2',
     yell: 'https://www.yell.com/biz/eazybase-extensions-ltd-blackburn-9070825/',
     google: 'https://g.page/eazybase-extensions-ltd',
   },

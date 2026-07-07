@@ -1,6 +1,7 @@
 import * as migration_20260706_203108_initial from './20260706_203108_initial';
 import * as migration_20260707_120000_add_pages_card_image from './20260707_120000_add_pages_card_image';
 import * as migration_20260707_150000_quote_pricing_and_survey from './20260707_150000_quote_pricing_and_survey';
+import * as migration_20260707_170000_add_site_settings_tiktok from './20260707_170000_add_site_settings_tiktok';
 
 export const migrations = [
   {
@@ -17,5 +18,10 @@ export const migrations = [
     up: migration_20260707_150000_quote_pricing_and_survey.up,
     down: migration_20260707_150000_quote_pricing_and_survey.down,
     name: '20260707_150000_quote_pricing_and_survey'
+  },
+  {
+    up: migration_20260707_170000_add_site_settings_tiktok.up,
+    down: migration_20260707_170000_add_site_settings_tiktok.down,
+    name: '20260707_170000_add_site_settings_tiktok'
   },
 ];

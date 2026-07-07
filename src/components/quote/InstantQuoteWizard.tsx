@@ -491,8 +491,9 @@ export function InstantQuoteWizard({ pricing }: { pricing: QuotePricing }) {
               </h2>
               <p className="mt-2 text-center text-sm text-ink-500">
                 We build from Blackburn. Any job {pricing.surveyDistanceMiles} miles or more away
-                has a £{pricing.surveyFee} survey fee — and if you decide to go ahead, that fee is
-                deducted from your final price.
+                has a £{pricing.surveyFee} survey fee.
+                <br />
+                And if you decide to go ahead, that fee is deducted from your final price.
               </p>
 
               <div className="mx-auto mt-8 max-w-sm">

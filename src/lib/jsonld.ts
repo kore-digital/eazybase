@@ -36,7 +36,13 @@ export function organization(): SchemaNode {
       addressCountry: 'GB',
     },
     award: `${SITE.award} — ${SITE.awardBody}`,
-    sameAs: [SITE.social.facebook, SITE.social.instagram, SITE.social.yell, SITE.social.google],
+    sameAs: [
+      SITE.social.facebook,
+      SITE.social.instagram,
+      SITE.social.tiktok,
+      SITE.social.yell,
+      SITE.social.google,
+    ],
   }
 }
 

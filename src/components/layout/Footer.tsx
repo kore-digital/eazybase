@@ -47,6 +47,7 @@ export function Footer({ phone, whatsappNumber, email, tagline, socials, navItem
   const socialLinks = [
     { label: 'Facebook', href: socials?.facebook || SITE.social.facebook },
     { label: 'Instagram', href: socials?.instagram || SITE.social.instagram },
+    { label: 'TikTok', href: socials?.tiktok || SITE.social.tiktok },
     { label: 'Yell', href: socials?.yell || SITE.social.yell },
     { label: 'Google', href: socials?.google || SITE.social.google },
   ]

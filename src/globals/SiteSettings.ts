@@ -32,6 +32,7 @@ export const SiteSettings: GlobalConfig = {
       fields: [
         { name: 'facebook', type: 'text' },
         { name: 'instagram', type: 'text' },
+        { name: 'tiktok', type: 'text', admin: { description: 'e.g. https://www.tiktok.com/@eazybase2' } },
         { name: 'yell', type: 'text' },
         { name: 'google', type: 'text' },
       ],
