@@ -3,6 +3,8 @@ import { headers as getHeaders } from 'next/headers'
 import { getPayload } from 'payload'
 import type { ReactElement } from 'react'
 
+import { hogql, posthogConfigured } from '@/lib/posthog'
+
 import { liveEditUrlForPage } from './pageUrl'
 import styles from './Dashboard.module.scss'
 
@@ -57,6 +59,15 @@ const ICONS: Record<string, ReactElement> = {
   ),
   pound: (
     <svg {...svgProps}><path d="M18 7c0-2.2-1.8-4-4-4S10 4.8 10 7c0 6-2 8-2 8h11" /><path d="M8 15v4a2 2 0 0 0 2 2h8" /><path d="M6 12h9" /></svg>
+  ),
+  eye: (
+    <svg {...svgProps}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+  ),
+  users: (
+    <svg {...svgProps}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+  ),
+  pointer: (
+    <svg {...svgProps}><path d="M3 3l7.5 18 2.5-8 8-2.5L3 3z" /></svg>
   ),
 }
 
@@ -137,6 +148,35 @@ export async function Dashboard() {
     payload.count({ collection: 'media' }),
     payload.find({ collection: 'quote-requests', limit: 1000, depth: 0, sort: '-createdAt' }),
   ])
+
+  // Website traffic (PostHog). All degrade to [] if unconfigured or on error.
+  const analyticsOn = posthogConfigured()
+  const [pvTotals, pvSeries, topPages, clickRow, locations] = await Promise.all([
+    hogql(`SELECT count() AS views, count(DISTINCT person_id) AS visitors FROM events WHERE event = '$pageview' AND timestamp > now() - INTERVAL 30 DAY`),
+    hogql(`SELECT toString(toDate(timestamp)) AS d, count() AS c FROM events WHERE event = '$pageview' AND timestamp > now() - INTERVAL 14 DAY GROUP BY d ORDER BY d`),
+    hogql(`SELECT properties['$pathname'] AS path, count() AS c FROM events WHERE event = '$pageview' AND timestamp > now() - INTERVAL 30 DAY AND path != '' GROUP BY path ORDER BY c DESC LIMIT 8`),
+    hogql(`SELECT countIf(elements_chain LIKE '%wa.me%') AS whatsapp, countIf(elements_chain LIKE '%tel:%') AS call, countIf(elements_chain LIKE '%/get-a-quote%') AS quote, countIf(elements_chain LIKE '%/instant-quote%') AS instant FROM events WHERE event = '$autocapture' AND properties['$event_type'] = 'click' AND timestamp > now() - INTERVAL 30 DAY`),
+    hogql(`SELECT properties['$geoip_city_name'] AS city, count(DISTINCT person_id) AS c FROM events WHERE event = '$pageview' AND timestamp > now() - INTERVAL 30 DAY AND city != '' GROUP BY city ORDER BY c DESC LIMIT 6`),
+  ])
+
+  const num = (v: string | number | null | undefined): number => (typeof v === 'number' ? v : Number(v) || 0)
+  const traffic = {
+    views: num(pvTotals[0]?.[0]),
+    visitors: num(pvTotals[0]?.[1]),
+    series: pvSeries.map((r) => ({ label: String(r[0] ?? '').slice(5), count: num(r[1]) })),
+    pages: topPages.map((r) => [String(r[0] ?? ''), num(r[1])] as [string, number]),
+    clicks: [
+      { label: 'WhatsApp', n: num(clickRow[0]?.[0]) },
+      { label: 'Call', n: num(clickRow[0]?.[1]) },
+      { label: 'Quote page', n: num(clickRow[0]?.[2]) },
+      { label: 'Instant quote', n: num(clickRow[0]?.[3]) },
+    ],
+    cities: locations.map((r) => [String(r[0] ?? ''), num(r[1])] as [string, number]),
+  }
+  const maxPv = Math.max(1, ...traffic.series.map((s) => s.count))
+  const maxTopPage = Math.max(1, ...traffic.pages.map((p) => p[1]))
+  const maxClick = Math.max(1, ...traffic.clicks.map((c) => c.n))
+  const maxCity = Math.max(1, ...traffic.cities.map((c) => c[1]))
 
   const quotes = quotesResult.docs as unknown as Quote[]
   const now = new Date(quotesResult.docs[0]?.createdAt ?? Date.now())
@@ -285,11 +325,114 @@ export async function Dashboard() {
         </div>
       </div>
 
-      {/* website traffic — wired in Phase B (PostHog) */}
-      <div className={styles.connect}>
-        <strong>Website traffic analytics — coming soon</strong>
-        <p>Page views, a visitor map, and WhatsApp / Call / Quote click tracking will appear here once analytics is connected.</p>
-      </div>
+      {/* website traffic (PostHog) */}
+      <h2 className={styles.sectionTitle}>Website traffic <span className={styles.subtle}>· last 30 days</span></h2>
+      {!analyticsOn ? (
+        <div className={styles.connect}>
+          <strong>Analytics not connected</strong>
+          <p>Add the PostHog keys to start tracking page views, visitor locations, and button clicks.</p>
+        </div>
+      ) : (
+        <>
+          <div className={styles.tiles} style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+            <div className={`${styles.tile} ${styles.blue}`}>
+              <span className={styles.tileIcon}>{ICONS.eye}</span>
+              <div className={styles.tileNum}>{traffic.views.toLocaleString('en-GB')}</div>
+              <div className={styles.tileLabel}>Page views</div>
+            </div>
+            <div className={`${styles.tile} ${styles.purple}`}>
+              <span className={styles.tileIcon}>{ICONS.users}</span>
+              <div className={styles.tileNum}>{traffic.visitors.toLocaleString('en-GB')}</div>
+              <div className={styles.tileLabel}>Visitors</div>
+            </div>
+            {traffic.clicks.map((c, i) => (
+              <div key={c.label} className={`${styles.tile} ${[styles.green, styles.orange, styles.teal, styles.dark][i]}`}>
+                <span className={styles.tileIcon}>{ICONS.pointer}</span>
+                <div className={styles.tileNum}>{c.n.toLocaleString('en-GB')}</div>
+                <div className={styles.tileLabel}>{c.label} clicks</div>
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.grid2}>
+            <div className={styles.panel}>
+              <h2 className={styles.panelTitle}>Page views <small>last 14 days</small></h2>
+              {traffic.series.length === 0 ? (
+                <p className={styles.empty}>No visits tracked yet — data appears within minutes of your first visitor.</p>
+              ) : (
+                <div className={styles.bars}>
+                  {traffic.series.map((s) => (
+                    <div key={s.label} className={styles.barCol}>
+                      <span className={styles.barVal}>{s.count || ''}</span>
+                      <span className={styles.bar} style={{ height: `${(s.count / maxPv) * 100}%`, background: 'linear-gradient(180deg,#3b82f6,#2563eb)' }} />
+                      <span className={styles.barLabel}>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.panel}>
+              <h2 className={styles.panelTitle}>Top pages</h2>
+              {traffic.pages.length === 0 ? (
+                <p className={styles.empty}>No page views yet.</p>
+              ) : (
+                <div className={styles.hbars}>
+                  {traffic.pages.map(([path, count], i) => (
+                    <div key={path} className={styles.hbarRow}>
+                      <span className={styles.hbarLabel}>{path === '/' ? 'Home' : path}</span>
+                      <span className={styles.hbarTrack}>
+                        <span className={styles.hbarFill} style={{ width: `${(count / maxTopPage) * 100}%`, background: CHART_COLOURS[i % CHART_COLOURS.length] }} />
+                      </span>
+                      <span className={styles.hbarVal}>{count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.grid2}>
+            <div className={styles.panel}>
+              <h2 className={styles.panelTitle}>Where your visitors are <small>top cities</small></h2>
+              {traffic.cities.length === 0 ? (
+                <p className={styles.empty}>No location data yet.</p>
+              ) : (
+                <div className={styles.hbars}>
+                  {traffic.cities.map(([city, count], i) => (
+                    <div key={city} className={styles.hbarRow}>
+                      <span className={styles.hbarLabel}>{city}</span>
+                      <span className={styles.hbarTrack}>
+                        <span className={styles.hbarFill} style={{ width: `${(count / maxCity) * 100}%`, background: CHART_COLOURS[i % CHART_COLOURS.length] }} />
+                      </span>
+                      <span className={styles.hbarVal}>{count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.panel}>
+              <h2 className={styles.panelTitle}>Button clicks <small>last 30 days</small></h2>
+              {maxClick === 1 && traffic.clicks.every((c) => c.n === 0) ? (
+                <p className={styles.empty}>No clicks tracked yet.</p>
+              ) : (
+                <div className={styles.hbars}>
+                  {traffic.clicks.map((c, i) => (
+                    <div key={c.label} className={styles.hbarRow}>
+                      <span className={styles.hbarLabel}>{c.label}</span>
+                      <span className={styles.hbarTrack}>
+                        <span className={styles.hbarFill} style={{ width: `${(c.n / maxClick) * 100}%`, background: CHART_COLOURS[i % CHART_COLOURS.length] }} />
+                      </span>
+                      <span className={styles.hbarVal}>{c.n}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* editable pages */}
       <h2 className={styles.sectionTitle}>Your pages</h2>

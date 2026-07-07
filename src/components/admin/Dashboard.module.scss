@@ -61,6 +61,7 @@
 
 /* ---------- page cards ---------- */
 .sectionTitle { font-size: 1.1rem; font-weight: 700; margin: 1.75rem 0 1rem; }
+.subtle { font-weight: 500; color: var(--theme-elevation-500); font-size: 0.85rem; }
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
 .card { border: 1px solid var(--theme-elevation-150); border-radius: 14px; overflow: hidden; background: var(--theme-elevation-0); }
 .thumb { aspect-ratio: 16 / 9; background: linear-gradient(135deg, #1e293b, #334155); display: flex; align-items: flex-end; padding: 0.85rem; }
