@@ -334,7 +334,7 @@ export async function Dashboard() {
         </div>
       ) : (
         <>
-          <div className={styles.tiles} style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+          <div className={styles.tiles}>
             <div className={`${styles.tile} ${styles.blue}`}>
               <span className={styles.tileIcon}>{ICONS.eye}</span>
               <div className={styles.tileNum}>{traffic.views.toLocaleString('en-GB')}</div>
