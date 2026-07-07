@@ -316,9 +316,9 @@ async function seedPages(payload: Payload, mediaIds: Record<string, number | str
     heading: 'Factory-built speed, without the compromise',
     stats: [
       // Leading space in word suffixes — the counters render {value}{suffix} tight.
-      { value: SITE.stats.factoryWeeks, suffix: ' weeks', label: 'Factory build, in as little as' },
-      { value: SITE.stats.installDays, suffix: ' days', label: 'Installed on-site in under' },
-      { value: SITE.stats.guaranteeYears, suffix: '-year', label: 'Structural guarantee, up to' },
+      { value: SITE.stats.factoryWeeks, suffix: ' weeks', label: 'Factory build' },
+      { value: SITE.stats.installDays, suffix: ' days', label: 'On-site install' },
+      { value: SITE.stats.guaranteeYears, suffix: '-year', label: 'Structural guarantee' },
     ],
   }
 
