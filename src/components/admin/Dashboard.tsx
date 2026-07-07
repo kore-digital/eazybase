@@ -69,6 +69,34 @@ const ICONS: Record<string, ReactElement> = {
   pointer: (
     <svg {...svgProps}><path d="M3 3l7.5 18 2.5-8 8-2.5L3 3z" /></svg>
   ),
+  home: (
+    <svg {...svgProps}><path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" /></svg>
+  ),
+  wrench: (
+    <svg {...svgProps}><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.9 6.1 21l6.4-6.3a4 4 0 0 0 5.2-5.4l-2.5 2.5-2.3-2.3z" /></svg>
+  ),
+  help: (
+    <svg {...svgProps}><circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4" /><path d="M12 17h.01" /></svg>
+  ),
+  zap: (
+    <svg {...svgProps}><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" /></svg>
+  ),
+  share: (
+    <svg {...svgProps}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5" /></svg>
+  ),
+}
+
+/** Designed thumbnail (gradient + icon) for pages that have no image of their own. */
+const DEFAULT_THUMB = { icon: 'file', grad: 'linear-gradient(135deg,#1e293b,#334155)' }
+const PAGE_THUMBS: Record<string, { icon: string; grad: string }> = {
+  home: { icon: 'home', grad: 'linear-gradient(135deg,#7cb518,#96c11f)' },
+  'what-we-do': { icon: 'wrench', grad: 'linear-gradient(135deg,#2563eb,#3b82f6)' },
+  faq: { icon: 'help', grad: 'linear-gradient(135deg,#7c3aed,#8b5cf6)' },
+  'get-a-quote': { icon: 'pound', grad: 'linear-gradient(135deg,#ea580c,#f97316)' },
+  'instant-quote': { icon: 'zap', grad: 'linear-gradient(135deg,#db2777,#ec4899)' },
+  social: { icon: 'share', grad: 'linear-gradient(135deg,#0d9488,#14b8a6)' },
+  gallery: { icon: 'image', grad: 'linear-gradient(135deg,#0891b2,#06b6d4)' },
+  'about-us': { icon: 'users', grad: 'linear-gradient(135deg,#475569,#334155)' },
 }
 
 /** Recursively find the first image in a page's blocks, preferring a
@@ -447,10 +475,18 @@ export async function Dashboard() {
                 null)
               : null
           const thumb = chosenUrl ?? firstImageUrl(page.sections)
+          const ph = thumb ? null : PAGE_THUMBS[slug] ?? DEFAULT_THUMB
           return (
             <div key={String(page.id)} className={styles.card}>
-              <div className={styles.thumb}>
-                {thumb ? <img src={thumb} alt="" /> : <span className={styles.thumbLabel}>{String(page.title)}</span>}
+              <div className={styles.thumb} style={ph ? { background: ph.grad } : undefined}>
+                {thumb ? (
+                  <img src={thumb} alt="" />
+                ) : (
+                  <>
+                    <span className={styles.phIcon} aria-hidden="true">{ICONS[ph!.icon]}</span>
+                    <span className={styles.thumbLabel}>{String(page.title)}</span>
+                  </>
+                )}
               </div>
               <div className={styles.cardBody}>
                 <p className={styles.cardTitle}>{String(page.title)}</p>
