@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Montserrat, Open_Sans } from 'next/font/google'
 import React from 'react'
 
+import { PostHogInit } from '@/components/analytics/PostHogInit'
 import { EditorOverlay } from '@/components/editor/EditorOverlay'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
@@ -67,6 +68,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
       <body>
         {/* Site-wide Lenis smooth scrolling (no-op under prefers-reduced-motion) */}
         <SmoothScroll />
+        <PostHogInit />
         <SiteContactProvider phone={settings?.phone} whatsappNumber={settings?.whatsappNumber}>
           <Header phone={settings?.phone} navItems={navigation?.mainNav} />
           <main>{children}</main>
