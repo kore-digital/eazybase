@@ -262,7 +262,14 @@ export async function Dashboard() {
       <div className={styles.cards}>
         {pagesResult.docs.map((page) => {
           const slug = page.slug ? String(page.slug) : ''
-          const thumb = firstImageUrl(page.sections)
+          const chosen = page.cardImage
+          const chosenUrl =
+            chosen && typeof chosen === 'object'
+              ? ((chosen as { sizes?: { card?: { url?: string } }; url?: string }).sizes?.card?.url ??
+                (chosen as { url?: string }).url ??
+                null)
+              : null
+          const thumb = chosenUrl ?? firstImageUrl(page.sections)
           return (
             <div key={String(page.id)} className={styles.card}>
               <div className={styles.thumb}>
