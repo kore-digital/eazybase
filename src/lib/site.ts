@@ -25,7 +25,7 @@ export const SITE = {
   stats: {
     factoryWeeks: 4, // "factory-built in as little as 4 weeks"
     installDays: 7, // "installed on-site in under a week"
-    guaranteeYears: 40, // "up to 40-year guarantee" (roofing — audit §7)
+    guaranteeYears: 20, // "up to 20-year structural guarantee"
   },
 } as const
 

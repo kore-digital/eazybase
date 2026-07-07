@@ -255,8 +255,9 @@ export default async function AboutUsPage() {
                     technology more and more homeowners ask for.
                   </p>
                   <p>
-                    Our roofing team keeps your extension watertight with a guarantee of up to 40
-                    years — flat, pitched or hipped, the same skill and care goes into every job.
+                    Our roofing team keeps your extension watertight — flat, pitched or hipped, the
+                    same skill and care goes into every job, backed by a structural guarantee of up
+                    to 20 years.
                   </p>
                 </div>
               )}
@@ -378,7 +379,7 @@ export default async function AboutUsPage() {
             <SectionHeading
               eyebrow="Trust, built in"
               onDark
-              lede="Decades of experience are behind every survey, every panel and every handover — with a roofing guarantee of up to 40 years on top."
+              lede="Decades of experience are behind every survey, every panel and every handover — with a structural guarantee of up to 20 years on top."
             >
               {statsBlock?.heading ? (
                 <span {...edit(`sections.${statsIdx}.heading`)}>{statsBlock.heading}</span>

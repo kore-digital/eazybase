@@ -318,7 +318,7 @@ async function seedPages(payload: Payload, mediaIds: Record<string, number | str
       // Leading space in word suffixes — the counters render {value}{suffix} tight.
       { value: SITE.stats.factoryWeeks, suffix: ' weeks', label: 'Factory build, in as little as' },
       { value: SITE.stats.installDays, suffix: ' days', label: 'Installed on-site in under' },
-      { value: SITE.stats.guaranteeYears, suffix: '-year', label: 'Guarantee on roofing, up to' },
+      { value: SITE.stats.guaranteeYears, suffix: '-year', label: 'Structural guarantee, up to' },
     ],
   }
 
@@ -428,7 +428,7 @@ async function seedPages(payload: Payload, mediaIds: Record<string, number | str
           heading: 'About EazyBase',
           content: toRichText(
             'EazyBase brings decades of construction experience to modular home extensions. Our teams are professional, highly trained, fully insured and fully certified, and we carry out free surveys before every project.\n\n' +
-              'Because we manufacture your extension ourselves in our Blackburn factory, we control quality at every stage — right down to smart-technology electrics and roofing covered by a guarantee of up to 40 years. Health and safety runs through everything we do, on the factory floor and on site at your home.',
+              'Because we manufacture your extension ourselves in our Blackburn factory, we control quality at every stage — right down to smart-technology electrics, and covered by a structural guarantee of up to 20 years. Health and safety runs through everything we do, on the factory floor and on site at your home.',
           ),
         },
         {

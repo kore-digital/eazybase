@@ -105,7 +105,7 @@ export default async function AreasPage() {
                 {[
                   { value: `${SITE.stats.factoryWeeks} weeks`, label: 'factory build' },
                   { value: 'Under 1 week', label: 'on-site installation' },
-                  { value: `${SITE.stats.guaranteeYears}-year`, label: 'roofing guarantee' },
+                  { value: `${SITE.stats.guaranteeYears}-year`, label: 'structural guarantee' },
                 ].map((stat) => (
                   <div key={stat.label} className="flex flex-col rounded-lg bg-ink-950 p-5">
                     <dt className="order-2 text-sm text-ink-300">{stat.label}</dt>

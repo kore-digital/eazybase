@@ -14,7 +14,7 @@ const WHY_EAZYBASE = [
   `Factory-built in ${SITE.base.split(',')[0]} in as little as ${SITE.stats.factoryWeeks} weeks`,
   'Installed on-site in under a week',
   'One team from design to building-control sign-off',
-  `Up to a ${SITE.stats.guaranteeYears}-year guarantee on roofing`,
+  `Up to a ${SITE.stats.guaranteeYears}-year structural guarantee`,
   'Free survey and a no-obligation quotation',
 ]
 

@@ -23,7 +23,7 @@ export const FAQ_CHIPS: AssistantFaq[] = [
   },
   {
     q: 'What guarantee do I get?',
-    a: `Every build is structurally guaranteed, with up to a ${SITE.stats.guaranteeYears}-year guarantee on the roofing. We're an award-winning nationwide modular builder.`,
+    a: `Every build is structurally guaranteed, with up to a ${SITE.stats.guaranteeYears}-year structural guarantee. We're an award-winning nationwide modular builder.`,
   },
   {
     q: 'Do you offer finance?',
