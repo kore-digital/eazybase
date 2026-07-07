@@ -67,7 +67,7 @@ export const SPEC_LEVELS: SpecLevel[] = [
       'Everything in Essential',
       'Aluminium bi-fold or French doors',
       'Roof light for natural daylight',
-      'Upgraded flooring & skirting',
+      '1× complimentary flat sky pod (1m × 1m) included',
       'Choice of external finishes',
     ],
   },
@@ -79,7 +79,7 @@ export const SPEC_LEVELS: SpecLevel[] = [
     inclusions: [
       'Everything in Premium',
       'Roof lantern & feature glazing',
-      'Designer flooring & finishes',
+      '1× complimentary flat sky pod (1m × 1m) included',
       'Smart lighting & extra circuits',
       'Premium cladding or render options',
     ],
