@@ -28,13 +28,16 @@ export function StatsBar() {
       <div className="eb-container flex flex-col items-center gap-6 py-6 lg:flex-row lg:justify-between">
         <dl className="grid w-full grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-10 lg:w-auto">
           {STATS.map((stat) => (
-            <div key={stat.label} className="flex items-baseline gap-2.5 justify-self-center sm:justify-self-start">
-              <dd className="order-1 font-display text-2xl font-bold text-brand-400 sm:text-3xl">
+            <div
+              key={stat.label}
+              className="flex flex-col items-center gap-0.5 justify-self-center text-center sm:items-start sm:justify-self-start sm:text-left"
+            >
+              <dd className="font-display text-2xl font-bold whitespace-nowrap text-brand-400 sm:text-3xl">
                 {stat.prefix ? <span className="text-lg font-semibold sm:text-xl">{stat.prefix}</span> : null}
                 <AnimatedCounter value={stat.value} />
                 {stat.suffix ? <span className="text-lg font-semibold sm:text-xl">{stat.suffix}</span> : null}
               </dd>
-              <dt className="order-2 text-sm text-ink-300">{stat.label}</dt>
+              <dt className="text-sm text-ink-300">{stat.label}</dt>
             </div>
           ))}
         </dl>

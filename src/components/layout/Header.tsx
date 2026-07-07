@@ -330,7 +330,7 @@ export function Header({ phone, navItems }: HeaderProps = {}) {
             animate={reducedMotion ? { opacity: 1 } : { x: 0 }}
             exit={reducedMotion ? { opacity: 0 } : { x: '100%' }}
             transition={{ duration: reducedMotion ? 0 : 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 top-18 z-40 flex flex-col overflow-y-auto bg-white lg:hidden"
+            className="fixed inset-x-0 top-18 z-40 flex h-[calc(100dvh-4.5rem)] flex-col overflow-y-auto bg-white lg:hidden"
           >
             <nav aria-label="Mobile" className="eb-container flex-1 py-6">
               <ul className="divide-y divide-ink-100">
