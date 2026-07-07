@@ -5,12 +5,33 @@ import { getPayload } from 'payload'
 import { liveEditUrlForPage } from './pageUrl'
 import styles from './Dashboard.module.scss'
 
-/** First image URL found in a page's blocks, else null (used for the card thumb). */
-function firstImageUrl(sections: unknown): string | null {
-  if (!Array.isArray(sections)) return null
-  for (const block of sections) {
-    const image = (block as { image?: { url?: string } })?.image
-    if (image && typeof image === 'object' && image.url) return image.url
+/**
+ * Recursively find the first image anywhere in a page's blocks (including
+ * images nested inside array blocks like tabs/gallery), preferring a
+ * card/thumb-sized variant over the full-resolution original. Returns null
+ * if the page has no image (the card then shows a branded placeholder).
+ */
+function firstImageUrl(node: unknown): string | null {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = firstImageUrl(item)
+      if (found) return found
+    }
+    return null
+  }
+  if (node && typeof node === 'object') {
+    const media = node as {
+      url?: string
+      mimeType?: string
+      sizes?: { card?: { url?: string }; thumb?: { url?: string } }
+    }
+    if (media.url && typeof media.mimeType === 'string' && media.mimeType.startsWith('image/')) {
+      return media.sizes?.card?.url ?? media.sizes?.thumb?.url ?? media.url
+    }
+    for (const value of Object.values(node)) {
+      const found = firstImageUrl(value)
+      if (found) return found
+    }
   }
   return null
 }
@@ -60,7 +81,7 @@ export async function Dashboard() {
           return (
             <div key={String(page.id)} className={styles.card}>
               <div className={styles.thumb}>
-                {thumb ? <img src={thumb} alt="" /> : null}
+                {thumb ? <img src={thumb} alt="" /> : <span className={styles.thumbLabel}>{String(page.title)}</span>}
               </div>
               <div className={styles.cardBody}>
                 <p className={styles.cardTitle}>{String(page.title)}</p>
