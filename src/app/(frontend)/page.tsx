@@ -12,8 +12,8 @@ import React from 'react'
 import { Hero } from '@/components/hero/Hero'
 import { StatsBar } from '@/components/hero/StatsBar'
 import { AwardStrip } from '@/components/home/AwardStrip'
-import { FacilityShowcase } from '@/components/home/FacilityShowcase'
 import { GalleryTeaser } from '@/components/home/GalleryTeaser'
+import { PhotoBand } from '@/components/home/PhotoBand'
 import { HomeIntro } from '@/components/home/HomeIntro'
 import { BuildStory } from '@/components/home/build-story/BuildStory'
 import { StatementIntro } from '@/components/home/build-story/StatementIntro'
@@ -143,7 +143,13 @@ export default async function HomePage() {
       ) : null}
 
       {/* 3.5 — HQ + fleet credibility band */}
-      <FacilityShowcase />
+      <PhotoBand
+        src="/hq-fleet.jpg"
+        alt="EazyBase headquarters and branded delivery fleet"
+        eyebrow="Our home"
+        heading="Designed, built and delivered in-house"
+        sub="Every extension is manufactured at our own facility and delivered by our own branded fleet — one team, start to finish."
+      />
 
       {/* 4 — Use cases: Kids Playrooms / Home Office / Dining Rooms / Kitchens */}
       {tabs.length > 0 ? (
@@ -180,6 +186,15 @@ export default async function HomePage() {
         heading={testimonialStrip?.block.heading}
         headingEdit={testimonialStrip ? `${editBase(testimonialStrip.index)}.heading` : undefined}
         testimonials={featuredTestimonials}
+      />
+
+      {/* 6.5 — Team on site */}
+      <PhotoBand
+        src="/team-extension.jpg"
+        alt="The EazyBase team on site in front of a completed rear extension"
+        eyebrow="Our team"
+        heading="One team, from survey to sign-off"
+        sub="The same EazyBase crew designs, builds and installs your extension — no subcontractors passing the job around."
       />
 
       {/* 7 — Gallery teaser */}

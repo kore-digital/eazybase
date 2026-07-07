@@ -80,13 +80,23 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 
 /* ------------------------------------------------------------ progress dots */
 
-function ProgressDots({ step }: { step: Step }) {
+function ProgressDots({
+  step,
+  maxStep,
+  onJump,
+}: {
+  step: Step
+  maxStep: Step
+  onJump: (s: Step) => void
+}) {
   return (
     <ol className="flex items-center justify-center gap-0" aria-label="Estimator progress">
       {STEP_LABELS.map((label, i) => {
         const number = (i + 1) as Step
         const done = step > number
         const current = step === number
+        // Any step already reached can be jumped to (back or forward).
+        const reachable = number <= maxStep && !current
         return (
           <li key={label} className="flex items-center">
             {i > 0 ? (
@@ -98,22 +108,36 @@ function ProgressDots({ step }: { step: Step }) {
                 ].join(' ')}
               />
             ) : null}
-            <span
-              className={[
-                'flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-bold transition-colors duration-300',
-                done
-                  ? 'bg-brand-500 text-ink-950'
-                  : current
-                    ? 'border-2 border-brand-500 bg-white text-brand-800'
-                    : 'border-2 border-ink-200 bg-white text-ink-500',
-              ].join(' ')}
+            <button
+              type="button"
+              onClick={() => reachable && onJump(number)}
+              disabled={!reachable}
               aria-current={current ? 'step' : undefined}
+              aria-label={reachable ? `Go to step ${number}: ${label}` : `Step ${number}: ${label}`}
+              className={['group flex items-center', reachable ? 'cursor-pointer' : 'cursor-default'].join(' ')}
             >
-              {done ? '✓' : number}
-            </span>
-            <span className="ml-2 hidden font-display text-xs font-semibold tracking-wide text-ink-500 uppercase sm:inline">
-              {label}
-            </span>
+              <span
+                className={[
+                  'flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-bold transition-colors duration-300',
+                  done
+                    ? 'bg-brand-500 text-ink-950 group-hover:bg-brand-600'
+                    : current
+                      ? 'border-2 border-brand-500 bg-white text-brand-800'
+                      : 'border-2 border-ink-200 bg-white text-ink-500',
+                ].join(' ')}
+              >
+                {done ? '✓' : number}
+              </span>
+              <span
+                className={[
+                  'ml-2 hidden font-display text-xs font-semibold tracking-wide uppercase transition-colors sm:inline',
+                  current ? 'text-ink-800' : 'text-ink-500',
+                  reachable ? 'group-hover:text-ink-800' : '',
+                ].join(' ')}
+              >
+                {label}
+              </span>
+            </button>
           </li>
         )
       })}
@@ -128,6 +152,7 @@ export function InstantQuoteWizard() {
   const { phone, phoneHref, whatsappHref } = useSiteContact()
 
   const [step, setStep] = useState<Step>(1)
+  const [maxStep, setMaxStep] = useState<Step>(1)
   const [direction, setDirection] = useState<1 | -1>(1)
   const [typeKey, setTypeKey] = useState<ExtensionTypeKey | null>(null)
   const [widthM, setWidthM] = useState<number>(SIZE_BOUNDS.defaultWidth)
@@ -169,6 +194,7 @@ export function InstantQuoteWizard() {
   const go = (next: Step) => {
     setDirection(next > step ? 1 : -1)
     setStep(next)
+    setMaxStep((m) => (next > m ? next : m))
     pendingHeadingFocus.current = true
   }
 
@@ -197,7 +223,7 @@ export function InstantQuoteWizard() {
     // data-quote-form: tells StickyMobileCTA to hide while the estimator is
     // in view, so the fixed bar never overlays the active quote flow.
     <div className="mx-auto max-w-3xl" data-quote-form>
-      <ProgressDots step={step} />
+      <ProgressDots step={step} maxStep={maxStep} onJump={go} />
 
       <div className="relative mt-8 overflow-hidden" aria-live="polite">
         <AnimatePresence mode="wait" initial={false}>
