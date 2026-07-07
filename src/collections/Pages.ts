@@ -202,6 +202,15 @@ export const Pages: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'cardImage',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        position: 'sidebar',
+        description: 'Optional thumbnail shown on this page’s dashboard card. Falls back to the first image in the page.',
+      },
+    },
+    {
       name: 'title',
       type: 'text',
       required: true,
