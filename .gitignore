@@ -8,3 +8,5 @@ media
 
 .vercel
 .env*
+.DS_Store
+tsconfig.tsbuildinfo
