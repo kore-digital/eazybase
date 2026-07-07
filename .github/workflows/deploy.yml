@@ -1,0 +1,36 @@
+name: Deploy to Vercel (Production)
+
+# Deploys via a Vercel token as the eazy-base member account, which bypasses the
+# Hobby "commit author must be a team member" block on git-integration deploys.
+# Requires one repo secret: VERCEL_TOKEN (a token from the eazy-base account).
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: vercel-prod
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: team_tlj1MxnN9678W1gYIvmeZGn2
+      VERCEL_PROJECT_ID: prj_LVuQNybOLkaDmZZstAEdD6g8Urhb
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      # Remote build on Vercel so the (Sensitive) production env vars —
+      # DATABASE_URI, PAYLOAD_SECRET, S3_*, PostHog — are injected server-side.
+      - name: Deploy to production
+        run: vercel deploy --prod --yes --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
