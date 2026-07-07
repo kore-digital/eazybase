@@ -1,6 +1,7 @@
 import config from '@payload-config'
 import { headers as getHeaders } from 'next/headers'
 import { getPayload } from 'payload'
+import type { ReactElement } from 'react'
 
 import { liveEditUrlForPage } from './pageUrl'
 import styles from './Dashboard.module.scss'
@@ -25,6 +26,39 @@ type Quote = {
 }
 
 const CHART_COLOURS = ['#96c11f', '#8b5cf6', '#f97316', '#3b82f6', '#14b8a6', '#ec4899']
+
+/** Minimal stroke icons (Lucide-style) for the stat tiles + feed. */
+const svgProps = {
+  width: 20,
+  height: 20,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true,
+}
+const ICONS: Record<string, ReactElement> = {
+  file: (
+    <svg {...svgProps}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M8 13h8M8 17h8" /></svg>
+  ),
+  check: (
+    <svg {...svgProps}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>
+  ),
+  image: (
+    <svg {...svgProps}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="1.6" /><path d="m21 15-5-5L5 21" /></svg>
+  ),
+  inbox: (
+    <svg {...svgProps}><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>
+  ),
+  bell: (
+    <svg {...svgProps}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+  ),
+  pound: (
+    <svg {...svgProps}><path d="M18 7c0-2.2-1.8-4-4-4S10 4.8 10 7c0 6-2 8-2 8h11" /><path d="M8 15v4a2 2 0 0 0 2 2h8" /><path d="M6 12h9" /></svg>
+  ),
+}
 
 /** Recursively find the first image in a page's blocks, preferring a
  *  card/thumb-sized variant. Returns null if the page has no image. */
@@ -127,12 +161,12 @@ export async function Dashboard() {
   const maxStatus = Math.max(1, ...byStatus.map((s) => s[1]))
 
   const tiles = [
-    { num: totalPages.totalDocs, label: 'Total pages', cls: styles.green, icon: '📄' },
-    { num: publishedPages.totalDocs, label: 'Published', cls: styles.teal, icon: '✅' },
-    { num: mediaCount.totalDocs, label: 'Images', cls: styles.blue, icon: '🖼️' },
-    { num: quotesResult.totalDocs, label: 'Total leads', cls: styles.purple, icon: '📥' },
-    { num: newLeads, label: 'New leads', cls: styles.orange, icon: '🔔' },
-    { num: avgEstimate ? `£${avgEstimate.toLocaleString('en-GB')}` : '—', label: 'Avg estimate', cls: styles.dark, icon: '💷' },
+    { num: totalPages.totalDocs, label: 'Total pages', cls: styles.green, icon: 'file' },
+    { num: publishedPages.totalDocs, label: 'Published', cls: styles.teal, icon: 'check' },
+    { num: mediaCount.totalDocs, label: 'Images', cls: styles.blue, icon: 'image' },
+    { num: quotesResult.totalDocs, label: 'Total leads', cls: styles.purple, icon: 'inbox' },
+    { num: newLeads, label: 'New leads', cls: styles.orange, icon: 'bell' },
+    { num: avgEstimate ? `£${avgEstimate.toLocaleString('en-GB')}` : '—', label: 'Avg estimate', cls: styles.dark, icon: 'pound' },
   ]
 
   return (
@@ -144,7 +178,7 @@ export async function Dashboard() {
       <div className={styles.tiles}>
         {tiles.map((t) => (
           <div key={t.label} className={`${styles.tile} ${t.cls}`}>
-            <span className={styles.tileIcon} aria-hidden="true">{t.icon}</span>
+            <span className={styles.tileIcon} aria-hidden="true">{ICONS[t.icon]}</span>
             <div className={styles.tileNum}>{t.num}</div>
             <div className={styles.tileLabel}>{t.label}</div>
           </div>
@@ -238,7 +272,7 @@ export async function Dashboard() {
             <div className={styles.feed}>
               {quotes.slice(0, 5).map((q) => (
                 <a key={String(q.id)} className={styles.feedRow} href={`/admin/collections/quote-requests/${q.id}`}>
-                  <span className={styles.feedDot} aria-hidden="true">📥</span>
+                  <span className={styles.feedDot} aria-hidden="true">{ICONS.inbox}</span>
                   <span>
                     <span className={styles.feedName}>{q.firstName ?? q.email ?? 'Enquiry'}</span>
                     <br />
