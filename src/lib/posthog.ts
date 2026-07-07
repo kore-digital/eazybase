@@ -20,7 +20,7 @@ export async function hogql(query: string): Promise<Array<Array<string | number 
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: { kind: 'HogQLQuery', query } }),
-      next: { revalidate: 300 },
+      next: { revalidate: 60 },
     })
     if (!res.ok) return []
     const data = (await res.json()) as { results?: Array<Array<string | number | null>> }
