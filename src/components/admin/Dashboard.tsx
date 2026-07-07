@@ -257,6 +257,7 @@ export async function Dashboard() {
       </div>
 
       {/* leads over time + where leads come from */}
+      <h2 className={styles.sectionTitle}>Leads &amp; enquiries <span className={styles.subtle}>· from your quote forms</span></h2>
       <div className={styles.grid2}>
         <div className={styles.panel}>
           <h2 className={styles.panelTitle}>Leads over time <small>last 6 months</small></h2>
