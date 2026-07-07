@@ -490,9 +490,9 @@ export function InstantQuoteWizard({ pricing }: { pricing: QuotePricing }) {
                 Last one — what’s your postcode?
               </h2>
               <p className="mt-2 text-center text-sm text-ink-500">
-                We build from Blackburn. Jobs beyond {pricing.surveyDistanceMiles} miles include a
-                refundable £{pricing.surveyFee} survey call-out — we’ll show it clearly on your
-                estimate.
+                We build from Blackburn. Any job {pricing.surveyDistanceMiles} miles or more away
+                has a £{pricing.surveyFee} survey fee — and if you decide to go ahead, that fee is
+                deducted from your final price.
               </p>
 
               <div className="mx-auto mt-8 max-w-sm">

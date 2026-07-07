@@ -562,7 +562,7 @@ async function seedPages(payload: Payload, mediaIds: Record<string, number | str
         {
           blockType: 'richText' as const,
           content: toRichText(
-            'Choose your extension type, size and specification below to see an indicative price range straight away. When you are ready, send us your details and we will follow up with a full, accurate quotation.',
+            'Tell us your extension type and size, then add your postcode to see an indicative price range straight away — pricing is based on size, so there is no jargon to wade through. When you are ready, send us your details and we will follow up with a full, accurate quotation.',
           ),
         },
         ctaBand('Prefer to talk it through?', `Call ${SITE.phone} — our team can give you a ballpark figure over the phone.`),
