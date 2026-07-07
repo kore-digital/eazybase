@@ -5,6 +5,7 @@ import { collectionRevalidateHooks } from '../lib/revalidate-hooks'
 
 export const GalleryItems: CollectionConfig = {
   slug: 'gallery-items',
+  labels: { singular: 'Gallery item', plural: 'Gallery' },
   admin: {
     useAsTitle: 'alt',
     defaultColumns: ['alt', 'category', 'order'],

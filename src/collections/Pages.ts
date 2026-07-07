@@ -183,7 +183,7 @@ export const Pages: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', 'published', 'updatedAt'],
-    group: 'Site',
+    group: 'Pages',
   },
   access: {
     read: publishedOrLoggedIn,

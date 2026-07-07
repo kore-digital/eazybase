@@ -1,6 +1,6 @@
 import type { Field, GlobalConfig } from 'payload'
 
-import { isAdminOrEditor } from '../access/roles'
+import { isAdminOrEditor, roleOf } from '../access/roles'
 import { globalRevalidateHooks } from '../lib/revalidate-hooks'
 
 const navArray = (name: string): Field => ({
@@ -14,7 +14,10 @@ const navArray = (name: string): Field => ({
 
 export const Navigation: GlobalConfig = {
   slug: 'navigation',
-  admin: { group: 'Site' },
+  admin: {
+    group: 'Settings',
+    hidden: ({ user }) => roleOf(user) !== 'admin',
+  },
   access: {
     read: () => true,
     update: isAdminOrEditor,

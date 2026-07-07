@@ -6,10 +6,11 @@ import { seoField } from '../fields/seo'
 
 export const Areas: CollectionConfig = {
   slug: 'areas',
+  labels: { singular: 'Local area', plural: 'Local Areas' },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'region', 'isHub', 'published'],
-    group: 'Site',
+    group: 'Pages',
   },
   access: {
     read: publishedOrLoggedIn,

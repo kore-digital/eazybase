@@ -1,0 +1,12 @@
+/* Brand the primary buttons brand-green */
+.btn--style-primary {
+  background: #96c11f;
+  border-color: #96c11f;
+  color: #1e1f1d;
+}
+
+/* Hide the stock modular dashboard; our custom dashboard renders above it
+   via beforeDashboard. Scoped to the dashboard view only. */
+.dashboard .modular-dashboard {
+  display: none;
+}

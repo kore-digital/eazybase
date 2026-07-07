@@ -9,6 +9,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  labels: { singular: 'Image', plural: 'Images' },
   admin: {
     useAsTitle: 'alt',
     defaultColumns: ['filename', 'alt', 'updatedAt'],
