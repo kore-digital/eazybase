@@ -86,6 +86,9 @@ const ICONS: Record<string, ReactElement> = {
   ),
 }
 
+/** Pages that always use the designed placeholder, ignoring their own images. */
+const PLACEHOLDER_ONLY = new Set(['about-us'])
+
 /** Designed thumbnail (gradient + icon) for pages that have no image of their own. */
 const DEFAULT_THUMB = { icon: 'file', grad: 'linear-gradient(135deg,#1e293b,#334155)' }
 const PAGE_THUMBS: Record<string, { icon: string; grad: string }> = {
@@ -474,7 +477,8 @@ export async function Dashboard() {
                 (chosen as { url?: string }).url ??
                 null)
               : null
-          const thumb = chosenUrl ?? firstImageUrl(page.sections)
+          const auto = PLACEHOLDER_ONLY.has(slug) ? null : firstImageUrl(page.sections)
+          const thumb = chosenUrl ?? auto
           const ph = thumb ? null : PAGE_THUMBS[slug] ?? DEFAULT_THUMB
           return (
             <div key={String(page.id)} className={styles.card}>
