@@ -182,6 +182,33 @@ export async function uploadMedia(file: File, alt: string): Promise<MediaDoc> {
   return json.doc ?? json
 }
 
+/* -------------------------------------------------------------- nav / menu */
+
+export type NavItem = { id?: string; label: string; href: string }
+export type NavField = 'mainNav' | 'footerNav'
+
+/** Load the whole navigation global (both menus). */
+export async function getNav(): Promise<Record<NavField, NavItem[]>> {
+  const res = await fetch('/api/globals/navigation?depth=0', { credentials: 'include' })
+  if (!res.ok) throw new Error(`Could not load the menu (${res.status})`)
+  const j = (await res.json()) as Partial<Record<NavField, NavItem[]>>
+  return { mainNav: j.mainNav ?? [], footerNav: j.footerNav ?? [] }
+}
+
+/** Replace one menu's items (add/remove/reorder/edit) — POST the whole array. */
+export async function saveNav(field: NavField, items: NavItem[]): Promise<void> {
+  const clean = items
+    .map((i) => ({ ...(i.id ? { id: i.id } : {}), label: i.label.trim(), href: i.href.trim() }))
+    .filter((i) => i.label && i.href)
+  const res = await fetch('/api/globals/navigation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ [field]: clean }),
+  })
+  if (!res.ok) throw new Error(`Could not save the menu (${res.status})`)
+}
+
 /**
  * Cache tags to revalidate after a successful save. The collection tag
  * always; plus the per-slug tag for pages/areas when the PATCH response

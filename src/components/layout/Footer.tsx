@@ -80,7 +80,7 @@ export function Footer({ phone, whatsappNumber, email, tagline, socials, navItem
         </div>
 
         {/* Quick links */}
-        <nav aria-label="Footer">
+        <nav aria-label="Footer" data-eb-edit-nav="footerNav">
           <h3 className="mb-4 font-display text-sm font-semibold tracking-[0.18em] text-white uppercase">
             Quick Links
           </h3>

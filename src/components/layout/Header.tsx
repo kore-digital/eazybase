@@ -148,7 +148,7 @@ export function Header({ phone, navItems }: HeaderProps = {}) {
         </Link>
 
         {/* Desktop nav */}
-        <nav aria-label="Main" className="hidden lg:block">
+        <nav aria-label="Main" data-eb-edit-nav="mainNav" className="hidden lg:block">
           <ul className="flex items-center gap-1" onMouseLeave={() => setHovered(null)}>
             {nav.map((item) => {
               const active =

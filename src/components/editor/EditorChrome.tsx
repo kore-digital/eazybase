@@ -6,8 +6,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { revalidateAllContent, revalidateContent } from '@/app/(frontend)/actions/revalidate'
 
 import { AdminBar } from './AdminBar'
-import { adminUrlFor, parseEditKey, saveEditKey, tagsForSave } from './edit-api'
+import {
+  adminUrlFor,
+  parseEditKey,
+  saveEditKey,
+  saveNav,
+  tagsForSave,
+  type NavField,
+  type NavItem,
+} from './edit-api'
 import { MediaSidebar } from './MediaSidebar'
+import { NavSidebar } from './NavSidebar'
 import type { EditorUser } from './EditorOverlay'
 
 /**
@@ -43,10 +52,12 @@ html.eb-authed body { padding-top: var(--eb-adminbar-h); }
 html.eb-authed body > header { top: var(--eb-adminbar-h); }
 html.eb-edit-mode [data-eb-edit],
 html.eb-edit-mode [data-eb-edit-rich],
-html.eb-edit-mode [data-eb-edit-media] { cursor: pointer; }
+html.eb-edit-mode [data-eb-edit-media],
+html.eb-edit-mode [data-eb-edit-nav] { cursor: pointer; }
 html.eb-edit-mode [data-eb-edit]:hover,
 html.eb-edit-mode [data-eb-edit-rich]:hover,
-html.eb-edit-mode [data-eb-edit-media]:hover {
+html.eb-edit-mode [data-eb-edit-media]:hover,
+html.eb-edit-mode [data-eb-edit-nav]:hover {
   outline: 2px dashed #96c11f;
   outline-offset: 3px;
   border-radius: 2px;
@@ -70,6 +81,8 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
   const [pill, setPill] = useState<HoverPill | null>(null)
   const [mediaKey, setMediaKey] = useState<string | null>(null)
   const [mediaBusy, setMediaBusy] = useState(false)
+  const [navField, setNavField] = useState<NavField | null>(null)
+  const [navBusy, setNavBusy] = useState(false)
 
   const sessionRef = useRef<Session | null>(null)
   const chipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -182,6 +195,24 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
     [mediaKey, router, showToast],
   )
 
+  // Save the whole menu array (reorder/add/remove/edit) to the navigation global.
+  const onSaveNav = useCallback(
+    async (field: NavField, items: NavItem[]) => {
+      setNavBusy(true)
+      try {
+        await saveNav(field, items)
+        await revalidateContent(['navigation'])
+        router.refresh()
+        setNavField(null)
+      } catch {
+        showToast('Could not save the menu — please try again.')
+      } finally {
+        setNavBusy(false)
+      }
+    },
+    [router, showToast],
+  )
+
   const commitSession = useCallback(() => {
     const session = sessionRef.current
     if (!session) return
@@ -262,7 +293,7 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
       const origin = e.target as Element | null
       if (!origin || origin.closest('[data-eb-chrome]')) return
       const target = origin.closest<HTMLElement>(
-        '[data-eb-edit], [data-eb-edit-rich], [data-eb-edit-media]',
+        '[data-eb-edit], [data-eb-edit-rich], [data-eb-edit-media], [data-eb-edit-nav]',
       )
       if (!target) return
 
@@ -275,6 +306,14 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
 
       e.preventDefault()
       e.stopPropagation()
+
+      // Menu bar → open the menu editor sidebar.
+      const navK = target.getAttribute('data-eb-edit-nav')
+      if (navK === 'mainNav' || navK === 'footerNav') {
+        setPill(null)
+        setNavField(navK)
+        return
+      }
 
       // Image → open the media picker sidebar.
       const mediaK = target.getAttribute('data-eb-edit-media')
@@ -299,18 +338,22 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
       const origin = e.target as Element | null
       const target =
         origin && !origin.closest('[data-eb-chrome]')
-          ? origin.closest<HTMLElement>('[data-eb-edit], [data-eb-edit-rich], [data-eb-edit-media]')
+          ? origin.closest<HTMLElement>(
+              '[data-eb-edit], [data-eb-edit-rich], [data-eb-edit-media], [data-eb-edit-nav]',
+            )
           : null
       if (!target || sessionRef.current?.el === target) {
         setPill(null)
         return
       }
       const rect = target.getBoundingClientRect()
-      const label = target.hasAttribute('data-eb-edit-media')
-        ? 'Change image'
-        : target.hasAttribute('data-eb-edit-rich')
-          ? 'Edit in admin'
-          : 'Click to edit'
+      const label = target.hasAttribute('data-eb-edit-nav')
+        ? 'Edit menu'
+        : target.hasAttribute('data-eb-edit-media')
+          ? 'Change image'
+          : target.hasAttribute('data-eb-edit-rich')
+            ? 'Edit in admin'
+            : 'Click to edit'
       setPill({
         x: Math.min(Math.max(rect.left, 8), window.innerWidth - 140),
         y: Math.max(rect.top - 26, 44),
@@ -368,6 +411,17 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
       {/* Image media picker */}
       {mediaKey && (
         <MediaSidebar onSelect={onSelectMedia} onClose={() => setMediaKey(null)} busy={mediaBusy} />
+      )}
+
+      {/* Menu editor */}
+      {navField && (
+        <NavSidebar
+          field={navField}
+          title={navField === 'mainNav' ? 'Edit main menu' : 'Edit footer menu'}
+          onSave={onSaveNav}
+          onClose={() => setNavField(null)}
+          busy={navBusy}
+        />
       )}
 
       {/* Save-state chip */}
