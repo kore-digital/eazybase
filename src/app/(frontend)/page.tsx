@@ -134,6 +134,10 @@ export default async function HomePage() {
         sub={page?.heroSub ?? undefined}
         editHeading={page ? `pages:${page.id}:heroHeading` : undefined}
         editSub={page ? `pages:${page.id}:heroSub` : undefined}
+        awardLine={settings?.awardLine ?? undefined}
+        editAwardLine="site-settings:site-settings:awardLine"
+        phone={settings?.phone ?? undefined}
+        editPhone="site-settings:site-settings:phone"
       />
       <StatsBar />
 

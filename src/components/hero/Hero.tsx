@@ -48,6 +48,11 @@ export type HeroProps = {
   /** data-eb-edit paths so the visual editor can bind the CMS fields */
   editHeading?: string
   editSub?: string
+  /** Award trust line + phone from site-settings (editable), with SITE fallbacks. */
+  awardLine?: string
+  editAwardLine?: string
+  phone?: string
+  editPhone?: string
 }
 
 export function Hero({
@@ -55,7 +60,13 @@ export function Hero({
   sub = 'Creating more space for what matters.',
   editHeading,
   editSub,
+  awardLine,
+  editAwardLine,
+  phone,
+  editPhone,
 }: HeroProps = {}) {
+  const phoneText = phone || SITE.phone
+  const phoneHref = `tel:${phoneText.replace(/[^\d+]/g, '')}`
   return (
     <section className="relative overflow-hidden bg-ink-950 text-white">
       {/* Subtle blueprint grid */}
@@ -118,14 +129,14 @@ export function Hero({
           <Reveal delay={0.7}>
             <p className="mt-9 flex items-start gap-2.5 text-sm text-ink-300">
               <Laurel className="mt-0.5 h-5 w-5 shrink-0 text-[#d4a72c]" />
-              <span>
-                <span className="font-semibold text-ink-100">{SITE.awardBody} 2023</span> — {SITE.award}
+              <span data-eb-edit={editAwardLine} className="text-ink-100">
+                {awardLine || `${SITE.awardBody} 2023 — ${SITE.award}`}
               </span>
             </p>
             <p className="mt-3 text-sm text-ink-300">
               Or call{' '}
-              <a href={SITE.phoneHref} className="font-semibold text-white underline-offset-4 hover:underline">
-                {SITE.phone}
+              <a href={phoneHref} className="font-semibold text-white underline-offset-4 hover:underline">
+                <span data-eb-edit={editPhone}>{phoneText}</span>
               </a>
             </p>
           </Reveal>
