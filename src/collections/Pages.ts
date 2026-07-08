@@ -12,7 +12,9 @@ const RichTextBlock: Block = {
   slug: 'richText',
   interfaceName: 'RichTextBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
+    { name: 'lede', type: 'textarea' },
     { name: 'content', type: 'richText', required: true },
   ],
 }
@@ -21,6 +23,7 @@ const ImageTextBlock: Block = {
   slug: 'imageText',
   interfaceName: 'ImageTextBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
     { name: 'body', type: 'richText' },
     { name: 'image', type: 'upload', relationTo: 'media' },
@@ -61,7 +64,9 @@ const ProcessTimelineBlock: Block = {
   slug: 'processTimeline',
   interfaceName: 'ProcessTimelineBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
+    { name: 'lede', type: 'textarea' },
     {
       name: 'steps',
       type: 'array',
@@ -82,7 +87,9 @@ const StatsCountersBlock: Block = {
   slug: 'statsCounters',
   interfaceName: 'StatsCountersBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
+    { name: 'lede', type: 'textarea' },
     {
       name: 'stats',
       type: 'array',
@@ -107,6 +114,7 @@ const CtaBandBlock: Block = {
   slug: 'ctaBand',
   interfaceName: 'CtaBandBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text', required: true },
     { name: 'body', type: 'textarea' },
     { name: 'buttonLabel', type: 'text' },
@@ -118,7 +126,9 @@ const FaqListBlock: Block = {
   slug: 'faqList',
   interfaceName: 'FaqListBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
+    { name: 'lede', type: 'textarea' },
     {
       name: 'faqs',
       type: 'relationship',
@@ -177,6 +187,7 @@ const AwardBadgeBlock: Block = {
   slug: 'awardBadge',
   interfaceName: 'AwardBadgeBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
     { name: 'award', type: 'relationship', relationTo: 'awards' },
   ],

@@ -228,7 +228,9 @@ export interface Media {
  * via the `definition` "RichTextBlock".
  */
 export interface RichTextBlock {
+  eyebrow?: string | null;
   heading?: string | null;
+  lede?: string | null;
   content: {
     root: {
       type: string;
@@ -253,6 +255,7 @@ export interface RichTextBlock {
  * via the `definition` "ImageTextBlock".
  */
 export interface ImageTextBlock {
+  eyebrow?: string | null;
   heading?: string | null;
   body?: {
     root: {
@@ -301,7 +304,9 @@ export interface UseCaseTabsBlock {
  * via the `definition` "ProcessTimelineBlock".
  */
 export interface ProcessTimelineBlock {
+  eyebrow?: string | null;
   heading?: string | null;
+  lede?: string | null;
   /**
    * Every step renders in the home page Build Story. The animated build illustration is hand-tuned for exactly 5 steps — any other count still animates, but falls back to evenly-spaced scene sampling (scene beats no longer align 1:1 with each step).
    */
@@ -321,7 +326,9 @@ export interface ProcessTimelineBlock {
  * via the `definition` "StatsCountersBlock".
  */
 export interface StatsCountersBlock {
+  eyebrow?: string | null;
   heading?: string | null;
+  lede?: string | null;
   stats?:
     | {
         value: number;
@@ -342,6 +349,7 @@ export interface StatsCountersBlock {
  * via the `definition` "CtaBandBlock".
  */
 export interface CtaBandBlock {
+  eyebrow?: string | null;
   heading: string;
   body?: string | null;
   buttonLabel?: string | null;
@@ -355,7 +363,9 @@ export interface CtaBandBlock {
  * via the `definition` "FaqListBlock".
  */
 export interface FaqListBlock {
+  eyebrow?: string | null;
   heading?: string | null;
+  lede?: string | null;
   /**
    * Leave empty to show all FAQs in order.
    */
@@ -449,6 +459,7 @@ export interface GalleryItem {
  * via the `definition` "AwardBadgeBlock".
  */
 export interface AwardBadgeBlock {
+  eyebrow?: string | null;
   heading?: string | null;
   award?: (number | null) | Award;
   id?: string | null;
@@ -756,7 +767,9 @@ export interface PagesSelect<T extends boolean = true> {
  * via the `definition` "RichTextBlock_select".
  */
 export interface RichTextBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
+  lede?: T;
   content?: T;
   id?: T;
   blockName?: T;
@@ -766,6 +779,7 @@ export interface RichTextBlockSelect<T extends boolean = true> {
  * via the `definition` "ImageTextBlock_select".
  */
 export interface ImageTextBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
   body?: T;
   image?: T;
@@ -798,7 +812,9 @@ export interface UseCaseTabsBlockSelect<T extends boolean = true> {
  * via the `definition` "ProcessTimelineBlock_select".
  */
 export interface ProcessTimelineBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
+  lede?: T;
   steps?:
     | T
     | {
@@ -814,7 +830,9 @@ export interface ProcessTimelineBlockSelect<T extends boolean = true> {
  * via the `definition` "StatsCountersBlock_select".
  */
 export interface StatsCountersBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
+  lede?: T;
   stats?:
     | T
     | {
@@ -831,6 +849,7 @@ export interface StatsCountersBlockSelect<T extends boolean = true> {
  * via the `definition` "CtaBandBlock_select".
  */
 export interface CtaBandBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
   body?: T;
   buttonLabel?: T;
@@ -843,7 +862,9 @@ export interface CtaBandBlockSelect<T extends boolean = true> {
  * via the `definition` "FaqListBlock_select".
  */
 export interface FaqListBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
+  lede?: T;
   faqs?: T;
   id?: T;
   blockName?: T;
@@ -878,6 +899,7 @@ export interface GalleryStripBlockSelect<T extends boolean = true> {
  * via the `definition` "AwardBadgeBlock_select".
  */
 export interface AwardBadgeBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
   award?: T;
   id?: T;
