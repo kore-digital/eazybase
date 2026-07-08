@@ -45,6 +45,7 @@ export function GalleryTeaser({ heading, headingEdit, items }: GalleryTeaserProp
                 <Link
                   href="/gallery"
                   aria-label={`${image.alt} — view the gallery`}
+                  data-eb-edit-media={`gallery-items:${item.id}:image`}
                   className="group relative block aspect-[4/3] overflow-hidden rounded-md"
                 >
                   <Image

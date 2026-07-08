@@ -7,6 +7,7 @@ import { revalidateAllContent, revalidateContent } from '@/app/(frontend)/action
 
 import { AdminBar } from './AdminBar'
 import { adminUrlFor, parseEditKey, saveEditKey, tagsForSave } from './edit-api'
+import { MediaSidebar } from './MediaSidebar'
 import type { EditorUser } from './EditorOverlay'
 
 /**
@@ -34,16 +35,18 @@ type Session = {
 }
 
 type Chip = { x: number; y: number; status: 'saving' | 'saved' }
-type HoverPill = { x: number; y: number; rich: boolean }
+type HoverPill = { x: number; y: number; label: string }
 
 const EDITOR_CSS = `
 html.eb-authed { --eb-adminbar-h: ${BAR_HEIGHT}; }
 html.eb-authed body { padding-top: var(--eb-adminbar-h); }
 html.eb-authed body > header { top: var(--eb-adminbar-h); }
 html.eb-edit-mode [data-eb-edit],
-html.eb-edit-mode [data-eb-edit-rich] { cursor: pointer; }
+html.eb-edit-mode [data-eb-edit-rich],
+html.eb-edit-mode [data-eb-edit-media] { cursor: pointer; }
 html.eb-edit-mode [data-eb-edit]:hover,
-html.eb-edit-mode [data-eb-edit-rich]:hover {
+html.eb-edit-mode [data-eb-edit-rich]:hover,
+html.eb-edit-mode [data-eb-edit-media]:hover {
   outline: 2px dashed #96c11f;
   outline-offset: 3px;
   border-radius: 2px;
@@ -65,6 +68,8 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
   const [chip, setChip] = useState<Chip | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [pill, setPill] = useState<HoverPill | null>(null)
+  const [mediaKey, setMediaKey] = useState<string | null>(null)
+  const [mediaBusy, setMediaBusy] = useState(false)
 
   const sessionRef = useRef<Session | null>(null)
   const chipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -150,6 +155,33 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
     [router, showChip, showToast],
   )
 
+  // Swap an image: PATCH the media relation to the picked/uploaded media id,
+  // then revalidate + refresh so the new image renders. Same persistence path
+  // as text edits, just an id value instead of a string.
+  const onSelectMedia = useCallback(
+    async (id: number) => {
+      if (!mediaKey) return
+      const parsed = parseEditKey(mediaKey)
+      if (!parsed) {
+        setMediaKey(null)
+        showToast(`Invalid image key: ${mediaKey}`)
+        return
+      }
+      setMediaBusy(true)
+      try {
+        const response = await saveEditKey(parsed, id)
+        await revalidateContent(tagsForSave(parsed, response))
+        router.refresh()
+        setMediaKey(null)
+      } catch {
+        showToast('Could not update the image — please try again.')
+      } finally {
+        setMediaBusy(false)
+      }
+    },
+    [mediaKey, router, showToast],
+  )
+
   const commitSession = useCallback(() => {
     const session = sessionRef.current
     if (!session) return
@@ -229,7 +261,9 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
     const onClick = (e: MouseEvent) => {
       const origin = e.target as Element | null
       if (!origin || origin.closest('[data-eb-chrome]')) return
-      const target = origin.closest<HTMLElement>('[data-eb-edit], [data-eb-edit-rich]')
+      const target = origin.closest<HTMLElement>(
+        '[data-eb-edit], [data-eb-edit-rich], [data-eb-edit-media]',
+      )
       if (!target) return
 
       // Clicks inside the active session reposition the caret; just make
@@ -241,6 +275,14 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
 
       e.preventDefault()
       e.stopPropagation()
+
+      // Image → open the media picker sidebar.
+      const mediaK = target.getAttribute('data-eb-edit-media')
+      if (mediaK) {
+        setPill(null)
+        setMediaKey(mediaK)
+        return
+      }
 
       const richKey = target.getAttribute('data-eb-edit-rich')
       if (richKey) {
@@ -257,17 +299,22 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
       const origin = e.target as Element | null
       const target =
         origin && !origin.closest('[data-eb-chrome]')
-          ? origin.closest<HTMLElement>('[data-eb-edit], [data-eb-edit-rich]')
+          ? origin.closest<HTMLElement>('[data-eb-edit], [data-eb-edit-rich], [data-eb-edit-media]')
           : null
       if (!target || sessionRef.current?.el === target) {
         setPill(null)
         return
       }
       const rect = target.getBoundingClientRect()
+      const label = target.hasAttribute('data-eb-edit-media')
+        ? 'Change image'
+        : target.hasAttribute('data-eb-edit-rich')
+          ? 'Edit in admin'
+          : 'Click to edit'
       setPill({
         x: Math.min(Math.max(rect.left, 8), window.innerWidth - 140),
         y: Math.max(rect.top - 26, 44),
-        rich: target.hasAttribute('data-eb-edit-rich'),
+        label,
       })
     }
 
@@ -314,8 +361,13 @@ export default function EditorChrome({ user }: { user: EditorUser }) {
           style={{ left: pill.x, top: pill.y }}
         >
           <PencilIcon />
-          {pill.rich ? 'Edit in admin' : 'Click to edit'}
+          {pill.label}
         </div>
+      )}
+
+      {/* Image media picker */}
+      {mediaKey && (
+        <MediaSidebar onSelect={onSelectMedia} onClose={() => setMediaKey(null)} busy={mediaBusy} />
       )}
 
       {/* Save-state chip */}

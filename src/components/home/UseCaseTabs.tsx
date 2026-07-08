@@ -124,7 +124,10 @@ export function UseCaseTabs({ tabs }: UseCaseTabsProps) {
             </div>
 
             {current.image ? (
-              <div className="relative aspect-[4/3] overflow-hidden rounded-lg shadow-lg">
+              <div
+                data-eb-edit-media={current.editBase ? `${current.editBase}.image` : undefined}
+                className="relative aspect-[4/3] overflow-hidden rounded-lg shadow-lg"
+              >
                 <Image
                   src={current.image.url}
                   alt={current.image.alt}
@@ -143,7 +146,10 @@ export function UseCaseTabs({ tabs }: UseCaseTabsProps) {
         {tabs.map((tab) => (
           <article key={tab.label} className="overflow-hidden rounded-lg bg-white shadow-md ring-1 ring-ink-100">
             {tab.image ? (
-              <div className="relative aspect-[16/9]">
+              <div
+                data-eb-edit-media={tab.editBase ? `${tab.editBase}.image` : undefined}
+                className="relative aspect-[16/9]"
+              >
                 <Image src={tab.image.url} alt={tab.image.alt} fill sizes="100vw" className="object-cover" />
               </div>
             ) : null}

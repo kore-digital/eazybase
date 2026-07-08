@@ -114,6 +114,7 @@ export function GalleryGrid({ images, className = '' }: { images: GalleryImage[]
                 type="button"
                 onClick={() => setLightboxIndex(i)}
                 aria-label={`View larger image: ${img.alt}`}
+                data-eb-edit-media={`gallery-items:${img.id}:image`}
                 className="group relative block aspect-[4/3] w-full overflow-hidden rounded-lg bg-ink-100 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 <Image

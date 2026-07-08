@@ -52,13 +52,15 @@ export function AwardStrip({ heading, headingEdit, award }: AwardStripProps) {
     <section aria-label="Awards" className="border-b border-ink-100 bg-white">
       <div className="eb-container flex flex-col items-center justify-center gap-8 py-10 sm:flex-row sm:gap-12 md:py-12">
         {certificateURL ? (
-          <Image
-            src={certificateURL}
-            alt={certificate?.alt || `${award.title} certificate`}
-            width={certificate?.width ?? 640}
-            height={certificate?.height ?? 449}
-            className="h-32 w-auto rounded-sm shadow-lg ring-1 ring-ink-100 sm:h-36"
-          />
+          <span data-eb-edit-media={`awards:${award.id}:image`} className="inline-block">
+            <Image
+              src={certificateURL}
+              alt={certificate?.alt || `${award.title} certificate`}
+              width={certificate?.width ?? 640}
+              height={certificate?.height ?? 449}
+              className="h-32 w-auto rounded-sm shadow-lg ring-1 ring-ink-100 sm:h-36"
+            />
+          </span>
         ) : null}
 
         <div className="flex items-center gap-4">

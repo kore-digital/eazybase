@@ -43,19 +43,19 @@ export function adminUrlFor(parsed: ParsedEditKey): string {
  * Immutably set a deep path (mixed object keys / numeric array indices)
  * to `text`. Missing intermediate levels are created, existing siblings kept.
  */
-export function setDeep(value: unknown, parts: string[], text: string): unknown {
-  if (parts.length === 0) return text
+export function setDeep(value: unknown, parts: string[], leaf: unknown): unknown {
+  if (parts.length === 0) return leaf
   const [head, ...rest] = parts
   if (/^\d+$/.test(head)) {
     const arr = Array.isArray(value) ? [...value] : []
-    arr[Number(head)] = setDeep(arr[Number(head)], rest, text)
+    arr[Number(head)] = setDeep(arr[Number(head)], rest, leaf)
     return arr
   }
   const obj =
     value !== null && typeof value === 'object' && !Array.isArray(value)
       ? { ...(value as Record<string, unknown>) }
       : {}
-  obj[head] = setDeep(obj[head], rest, text)
+  obj[head] = setDeep(obj[head], rest, leaf)
   return obj
 }
 
@@ -115,7 +115,7 @@ export function resolveRowIds(value: unknown, parts: string[]): string[] {
  */
 export async function saveEditKey(
   parsed: ParsedEditKey,
-  text: string,
+  value: string | number,
 ): Promise<Record<string, unknown>> {
   const base = parsed.isGlobal
     ? `/api/globals/${parsed.collection}`
@@ -128,9 +128,9 @@ export async function saveEditKey(
     if (!docRes.ok) throw new Error(`Could not load document (${docRes.status})`)
     const doc = (await docRes.json()) as Record<string, unknown>
     const parts = resolveRowIds(doc?.[topKey], rest)
-    body = { [topKey]: setDeep(doc?.[topKey], parts, text) }
+    body = { [topKey]: setDeep(doc?.[topKey], parts, value) }
   } else {
-    body = { [parsed.fieldPath]: text }
+    body = { [parsed.fieldPath]: value }
   }
 
   const res = await fetch(base, {
@@ -141,6 +141,45 @@ export async function saveEditKey(
   })
   if (!res.ok) throw new Error(`Save failed (${res.status})`)
   return res.json().catch(() => ({}) as Record<string, unknown>)
+}
+
+/* ------------------------------------------------------------------ media */
+
+export type MediaDoc = {
+  id: number
+  alt?: string
+  url?: string
+  filename?: string
+  thumbnailURL?: string
+  width?: number
+  height?: number
+  sizes?: Record<string, { url?: string } | undefined>
+}
+
+/** Best small preview URL for a media doc. */
+export function mediaThumb(m: MediaDoc): string | undefined {
+  return m.sizes?.thumb?.url ?? m.thumbnailURL ?? m.sizes?.card?.url ?? m.url
+}
+
+/** List existing media (newest first), optionally filtered by alt text. */
+export async function listMedia(search?: string): Promise<MediaDoc[]> {
+  const params = new URLSearchParams({ limit: '80', depth: '0', sort: '-updatedAt' })
+  if (search) params.set('where[alt][contains]', search)
+  const res = await fetch(`/api/media?${params.toString()}`, { credentials: 'include' })
+  if (!res.ok) throw new Error(`Could not load media (${res.status})`)
+  const json = (await res.json()) as { docs?: MediaDoc[] }
+  return json.docs ?? []
+}
+
+/** Upload a new image to the media library; returns the created doc. */
+export async function uploadMedia(file: File, alt: string): Promise<MediaDoc> {
+  const fd = new FormData()
+  fd.set('file', file)
+  fd.set('_payload', JSON.stringify({ alt: alt || file.name }))
+  const res = await fetch('/api/media', { method: 'POST', credentials: 'include', body: fd })
+  if (!res.ok) throw new Error(`Upload failed (${res.status})`)
+  const json = (await res.json()) as { doc?: MediaDoc } & MediaDoc
+  return json.doc ?? json
 }
 
 /**
