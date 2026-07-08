@@ -271,7 +271,10 @@ export default async function AboutUsPage() {
                     aria-hidden="true"
                     className="absolute -top-4 -left-4 h-20 w-20 -skew-x-[18deg] bg-brand-500/20"
                   />
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-lg shadow-xl shadow-ink-900/10">
+                  <div
+                    data-eb-edit-media={`gallery-items:${flagship.id}:image`}
+                    className="relative aspect-[4/3] overflow-hidden rounded-lg shadow-xl shadow-ink-900/10"
+                  >
                     <Image
                       src={galleryImage(flagship)!.url}
                       alt={galleryImage(flagship)!.alt}
@@ -348,7 +351,10 @@ export default async function AboutUsPage() {
                   delay={0.15}
                   className={imageTextBlock.imageSide === 'right' ? 'lg:order-2' : 'lg:order-1'}
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-lg shadow-xl shadow-ink-900/10">
+                  <div
+                    data-eb-edit-media={page ? `pages:${page.id}:sections.${imageTextIdx}.image` : undefined}
+                    className="relative aspect-[4/3] overflow-hidden rounded-lg shadow-xl shadow-ink-900/10"
+                  >
                     <Image
                       src={teamImageUrl}
                       alt={
