@@ -232,7 +232,12 @@ export default async function AboutUsPage() {
         <div className="eb-container">
           <div className="grid items-start gap-12 lg:grid-cols-[7fr_5fr]">
             <Reveal>
-              <SectionHeading eyebrow="Who we are" align="left" className="mb-6">
+              <SectionHeading
+                eyebrow={richTextBlock?.eyebrow || 'Who we are'}
+                eyebrowEdit={page ? `pages:${page.id}:sections.${richTextIdx}.eyebrow` : undefined}
+                align="left"
+                className="mb-6"
+              >
                 {richTextBlock?.heading ? (
                   <span {...edit(`sections.${richTextIdx}.heading`)}>{richTextBlock.heading}</span>
                 ) : (
@@ -330,7 +335,12 @@ export default async function AboutUsPage() {
           <div className="eb-container">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <Reveal className={imageTextBlock.imageSide === 'right' ? 'lg:order-1' : 'lg:order-2'}>
-                <SectionHeading eyebrow="The team" align="left" className="mb-6">
+                <SectionHeading
+                  eyebrow={imageTextBlock.eyebrow || 'The team'}
+                  eyebrowEdit={page ? `pages:${page.id}:sections.${imageTextIdx}.eyebrow` : undefined}
+                  align="left"
+                  className="mb-6"
+                >
                   {imageTextBlock.heading ? (
                     <span {...edit(`sections.${imageTextIdx}.heading`)}>{imageTextBlock.heading}</span>
                   ) : (
@@ -383,9 +393,14 @@ export default async function AboutUsPage() {
         <div className="eb-container relative">
           <Reveal>
             <SectionHeading
-              eyebrow="Trust, built in"
+              eyebrow={statsBlock?.eyebrow || 'Trust, built in'}
+              eyebrowEdit={page ? `pages:${page.id}:sections.${statsIdx}.eyebrow` : undefined}
               onDark
-              lede="Decades of experience are behind every survey, every panel and every handover — with a structural guarantee of up to 20 years on top."
+              lede={
+                statsBlock?.lede ||
+                'Decades of experience are behind every survey, every panel and every handover — with a structural guarantee of up to 20 years on top.'
+              }
+              ledeEdit={page ? `pages:${page.id}:sections.${statsIdx}.lede` : undefined}
             >
               {statsBlock?.heading ? (
                 <span {...edit(`sections.${statsIdx}.heading`)}>{statsBlock.heading}</span>

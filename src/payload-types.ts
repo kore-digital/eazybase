@@ -151,6 +151,10 @@ export interface Page {
    * Optional thumbnail shown on this page’s dashboard card. Falls back to the first image in the page.
    */
   cardImage?: (number | null) | Media;
+  /**
+   * Small green kicker above the hero heading.
+   */
+  heroEyebrow?: string | null;
   heroHeading?: string | null;
   heroSub?: string | null;
   sections?:
@@ -736,6 +740,7 @@ export interface PagesSelect<T extends boolean = true> {
   slug?: T;
   title?: T;
   cardImage?: T;
+  heroEyebrow?: T;
   heroHeading?: T;
   heroSub?: T;
   sections?:

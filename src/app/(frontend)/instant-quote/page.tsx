@@ -48,7 +48,8 @@ export default async function InstantQuotePage() {
               as="h1"
               align="left"
               onDark
-              eyebrow="60-second estimator"
+              eyebrow={page?.heroEyebrow || '60-second estimator'}
+              eyebrowEdit={page ? `pages:${page.id}:heroEyebrow` : undefined}
               lede={
                 page?.heroSub ? (
                   <span data-eb-edit={`pages:${page.id}:heroSub`}>{page.heroSub}</span>

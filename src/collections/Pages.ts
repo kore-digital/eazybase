@@ -233,6 +233,11 @@ export const Pages: CollectionConfig = {
       },
     },
     {
+      name: 'heroEyebrow',
+      type: 'text',
+      admin: { description: 'Small green kicker above the hero heading.' },
+    },
+    {
       name: 'heroHeading',
       type: 'text',
     },

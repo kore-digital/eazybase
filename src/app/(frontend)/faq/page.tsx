@@ -60,7 +60,8 @@ export default async function FAQPage() {
               as="h1"
               align="left"
               onDark
-              eyebrow="Help & Advice"
+              eyebrow={page?.heroEyebrow || 'Help & Advice'}
+              eyebrowEdit={page ? `pages:${page.id}:heroEyebrow` : undefined}
               lede={
                 page ? (
                   <span data-eb-edit={`pages:${page.id}:heroSub`}>{heroSub}</span>

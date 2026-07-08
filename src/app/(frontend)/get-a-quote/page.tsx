@@ -54,7 +54,8 @@ export default async function GetAQuotePage() {
             <SectionHeading
               as="h1"
               align="left"
-              eyebrow="Instant quote"
+              eyebrow={page?.heroEyebrow || 'Instant quote'}
+              eyebrowEdit={page ? `pages:${page.id}:heroEyebrow` : undefined}
               lede={
                 page?.heroSub ? (
                   <span data-eb-edit={`pages:${page.id}:heroSub`}>{page.heroSub}</span>

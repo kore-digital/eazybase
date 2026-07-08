@@ -102,7 +102,8 @@ export default async function GalleryPage() {
               as="h1"
               align="left"
               onDark
-              eyebrow="Our Work"
+              eyebrow={page?.heroEyebrow || 'Our Work'}
+              eyebrowEdit={page ? `pages:${page.id}:heroEyebrow` : undefined}
               lede={
                 page ? (
                   <span data-eb-edit={`pages:${page.id}:heroSub`}>{heroSub}</span>

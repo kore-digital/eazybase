@@ -144,7 +144,8 @@ export default async function SocialPage() {
               as="h1"
               align="left"
               onDark
-              eyebrow="Reviews & Social"
+              eyebrow={page?.heroEyebrow || 'Reviews & Social'}
+              eyebrowEdit={page ? `pages:${page.id}:heroEyebrow` : undefined}
               lede={
                 page ? (
                   <span data-eb-edit={`pages:${page.id}:heroSub`}>{heroSub}</span>
