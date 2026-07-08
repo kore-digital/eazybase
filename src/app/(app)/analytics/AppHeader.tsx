@@ -20,7 +20,7 @@ export function AppHeader() {
         </span>
         <div>
           <p className="font-display text-sm font-bold leading-tight">EazyBase Analytics</p>
-          <p className="text-[11px] leading-tight text-ink-400">Live · last 30 days</p>
+          <p className="text-[11px] leading-tight text-ink-400">Live analytics</p>
         </div>
       </div>
       <button

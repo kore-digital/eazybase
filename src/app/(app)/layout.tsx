@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Montserrat, Open_Sans } from 'next/font/google'
 import React from 'react'
 
+import { InstallPrompt } from './analytics/InstallPrompt'
 import { PwaRegister } from './analytics/PwaRegister'
 
 import '../(frontend)/styles.css'
@@ -46,6 +47,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <html lang="en-GB" className={`${montserrat.variable} ${openSans.variable}`}>
       <body className="bg-ink-50">
         {children}
+        <InstallPrompt />
         <PwaRegister />
       </body>
     </html>

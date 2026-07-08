@@ -25,7 +25,7 @@ export function LeadsPanel({ data }: { data: LeadsData }) {
         <Tile num={data.avgEstimate ? `£${(data.avgEstimate / 1000).toFixed(0)}k` : '—'} label="Avg estimate" tone="dark" />
       </div>
 
-      <Panel title="Leads over time" sub="last 6 months">
+      <Panel title="Leads over time">
         {data.total === 0 ? (
           <Empty>No leads yet — they’ll chart here as quotes come in.</Empty>
         ) : (

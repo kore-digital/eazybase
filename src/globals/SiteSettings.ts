@@ -51,9 +51,11 @@ export const SiteSettings: GlobalConfig = {
       // stripped from all public API reads; the app reads it server-side to verify.
       name: 'analyticsPin',
       type: 'text',
+      label: 'Analytics app PIN',
       access: { read: isAdminFieldLevel, update: isAdminFieldLevel },
       admin: {
-        description: 'A 4–6 digit PIN to open the EazyBase Analytics phone app. Set/change it here.',
+        description:
+          'The 4–6 digit PIN that unlocks the EazyBase Analytics phone app (eazybase-kohl.vercel.app/analytics). Change it any time — it takes effect immediately.',
       },
     },
   ],

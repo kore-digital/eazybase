@@ -32,7 +32,7 @@ export function TrafficPanel({ data }: { data: TrafficData }) {
         <Tile num={data.clicks[3].n} label="Instant quote clicks" tone="dark" />
       </div>
 
-      <Panel title="Top pages" sub="last 30 days">
+      <Panel title="Top pages">
         {data.pages.length === 0 ? (
           <Empty>No page views yet.</Empty>
         ) : (
@@ -42,7 +42,7 @@ export function TrafficPanel({ data }: { data: TrafficData }) {
         )}
       </Panel>
 
-      <Panel title="Button clicks" sub="last 30 days">
+      <Panel title="Button clicks">
         {data.clicks.map((c, i) => (
           <BarRow key={c.label} label={c.label} value={c.n} max={maxClick} color={CHART_COLOURS[i % CHART_COLOURS.length]} />
         ))}
@@ -59,7 +59,7 @@ export function TrafficPanel({ data }: { data: TrafficData }) {
       </Panel>
 
       {data.points.length > 0 ? (
-        <Panel title="Visitor map" sub="last 30 days">
+        <Panel title="Visitor map">
           {/* Supply the admin theme vars the map uses for land/borders. */}
           <div
             className="overflow-hidden rounded-xl"
