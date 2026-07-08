@@ -157,6 +157,26 @@ export interface Page {
   heroEyebrow?: string | null;
   heroHeading?: string | null;
   heroSub?: string | null;
+  /**
+   * Eyebrow/heading/lede for this page’s built-in sections.
+   */
+  sectionCopy?: {
+    beforeAfterEyebrow?: string | null;
+    beforeAfterHeading?: string | null;
+    beforeAfterLede?: string | null;
+    photosEyebrow?: string | null;
+    photosHeading?: string | null;
+    photosLede?: string | null;
+    whyEyebrow?: string | null;
+    whyHeading?: string | null;
+    whyLede?: string | null;
+    exampleEyebrow?: string | null;
+    exampleHeading?: string | null;
+    exampleLede?: string | null;
+    processEyebrow?: string | null;
+    processHeading?: string | null;
+    processLede?: string | null;
+  };
   sections?:
     | (
         | RichTextBlock
@@ -743,6 +763,25 @@ export interface PagesSelect<T extends boolean = true> {
   heroEyebrow?: T;
   heroHeading?: T;
   heroSub?: T;
+  sectionCopy?:
+    | T
+    | {
+        beforeAfterEyebrow?: T;
+        beforeAfterHeading?: T;
+        beforeAfterLede?: T;
+        photosEyebrow?: T;
+        photosHeading?: T;
+        photosLede?: T;
+        whyEyebrow?: T;
+        whyHeading?: T;
+        whyLede?: T;
+        exampleEyebrow?: T;
+        exampleHeading?: T;
+        exampleLede?: T;
+        processEyebrow?: T;
+        processHeading?: T;
+        processLede?: T;
+      };
   sections?:
     | T
     | {

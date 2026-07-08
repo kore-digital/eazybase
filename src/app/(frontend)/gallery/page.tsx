@@ -128,10 +128,14 @@ export default async function GalleryPage() {
           <div className="eb-container">
             <Reveal>
               <SectionHeading
-                eyebrow="Before & After"
-                lede="Drag the slider to see the space each extension unlocked."
+                eyebrow={page?.sectionCopy?.beforeAfterEyebrow || 'Before & After'}
+                eyebrowEdit={page ? `pages:${page.id}:sectionCopy.beforeAfterEyebrow` : undefined}
+                lede={page?.sectionCopy?.beforeAfterLede || 'Drag the slider to see the space each extension unlocked.'}
+                ledeEdit={page ? `pages:${page.id}:sectionCopy.beforeAfterLede` : undefined}
               >
-                The transformation, side by side
+                <span data-eb-edit={page ? `pages:${page.id}:sectionCopy.beforeAfterHeading` : undefined}>
+                  {page?.sectionCopy?.beforeAfterHeading || 'The transformation, side by side'}
+                </span>
               </SectionHeading>
             </Reveal>
             <div
@@ -168,10 +172,17 @@ export default async function GalleryPage() {
         <div className="eb-container">
           <Reveal>
             <SectionHeading
-              eyebrow="Project Photos"
-              lede="Every photo below is a real EazyBase project — finished exteriors, bright interiors and the build in progress. Click any image to take a closer look."
+              eyebrow={page?.sectionCopy?.photosEyebrow || 'Project Photos'}
+              eyebrowEdit={page ? `pages:${page.id}:sectionCopy.photosEyebrow` : undefined}
+              lede={
+                page?.sectionCopy?.photosLede ||
+                'Every photo below is a real EazyBase project — finished exteriors, bright interiors and the build in progress. Click any image to take a closer look.'
+              }
+              ledeEdit={page ? `pages:${page.id}:sectionCopy.photosLede` : undefined}
             >
-              Proof, not promises
+              <span data-eb-edit={page ? `pages:${page.id}:sectionCopy.photosHeading` : undefined}>
+                {page?.sectionCopy?.photosHeading || 'Proof, not promises'}
+              </span>
             </SectionHeading>
           </Reveal>
 

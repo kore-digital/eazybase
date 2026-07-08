@@ -303,10 +303,17 @@ export default async function AboutUsPage() {
         <div className="eb-container">
           <Reveal>
             <SectionHeading
-              eyebrow="Why EazyBase"
-              lede="Eight reasons homeowners across the North West and London trust us with their extensions."
+              eyebrow={page?.sectionCopy?.whyEyebrow || 'Why EazyBase'}
+              eyebrowEdit={page ? `pages:${page.id}:sectionCopy.whyEyebrow` : undefined}
+              lede={
+                page?.sectionCopy?.whyLede ||
+                'Eight reasons homeowners across the North West and London trust us with their extensions.'
+              }
+              ledeEdit={page ? `pages:${page.id}:sectionCopy.whyLede` : undefined}
             >
-              Built on solid foundations
+              <span data-eb-edit={page ? `pages:${page.id}:sectionCopy.whyHeading` : undefined}>
+                {page?.sectionCopy?.whyHeading || 'Built on solid foundations'}
+              </span>
             </SectionHeading>
           </Reveal>
           <ul className="mt-12 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
@@ -433,10 +440,17 @@ export default async function AboutUsPage() {
         <div className="eb-container">
           <Reveal>
             <SectionHeading
-              eyebrow="Our work"
-              lede="A few of the layouts and finishes we have designed, factory-built and installed for homeowners like you."
+              eyebrow={page?.sectionCopy?.exampleEyebrow || 'Our work'}
+              eyebrowEdit={page ? `pages:${page.id}:sectionCopy.exampleEyebrow` : undefined}
+              lede={
+                page?.sectionCopy?.exampleLede ||
+                'A few of the layouts and finishes we have designed, factory-built and installed for homeowners like you.'
+              }
+              ledeEdit={page ? `pages:${page.id}:sectionCopy.exampleLede` : undefined}
             >
-              Example build layouts
+              <span data-eb-edit={page ? `pages:${page.id}:sectionCopy.exampleHeading` : undefined}>
+                {page?.sectionCopy?.exampleHeading || 'Example build layouts'}
+              </span>
             </SectionHeading>
           </Reveal>
           <div className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

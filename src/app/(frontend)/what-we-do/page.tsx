@@ -224,10 +224,17 @@ export default async function WhatWeDoPage() {
         <div className="eb-container">
           <Reveal>
             <SectionHeading
-              eyebrow="The EazyBase way"
-              lede="Five phases take your extension from first sketch to final handover — most of it in our factory, not your garden."
+              eyebrow={page?.sectionCopy?.processEyebrow || 'The EazyBase way'}
+              eyebrowEdit={page ? `pages:${page.id}:sectionCopy.processEyebrow` : undefined}
+              lede={
+                page?.sectionCopy?.processLede ||
+                'Five phases take your extension from first sketch to final handover — most of it in our factory, not your garden.'
+              }
+              ledeEdit={page ? `pages:${page.id}:sectionCopy.processLede` : undefined}
             >
-              Concept to completion, in five steps
+              <span data-eb-edit={page ? `pages:${page.id}:sectionCopy.processHeading` : undefined}>
+                {page?.sectionCopy?.processHeading || 'Concept to completion, in five steps'}
+              </span>
             </SectionHeading>
           </Reveal>
           <ProcessTimeline steps={timelineSteps} className="mx-auto mt-16 max-w-5xl" />
@@ -239,8 +246,13 @@ export default async function WhatWeDoPage() {
         <div className="eb-container">
           <Reveal>
             <SectionHeading
-              eyebrow="How ordering works"
-              lede="Within those five phases, your order moves through eight simple stages — and you will know exactly where it is at every one."
+              eyebrow={orderBlock?.eyebrow || 'How ordering works'}
+              eyebrowEdit={page ? `pages:${page.id}:sections.${orderIdx}.eyebrow` : undefined}
+              lede={
+                orderBlock?.lede ||
+                'Within those five phases, your order moves through eight simple stages — and you will know exactly where it is at every one.'
+              }
+              ledeEdit={page ? `pages:${page.id}:sections.${orderIdx}.lede` : undefined}
             >
               {orderBlock?.heading ? (
                 <span {...edit(`sections.${orderIdx}.heading`)}>{orderBlock.heading}</span>

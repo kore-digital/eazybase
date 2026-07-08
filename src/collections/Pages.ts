@@ -246,6 +246,31 @@ export const Pages: CollectionConfig = {
       type: 'text',
     },
     {
+      // Editable framing text for a page's fixed (non-block) sections. Each page
+      // only uses the entries relevant to it; all optional, fall back to code.
+      name: 'sectionCopy',
+      type: 'group',
+      label: 'Section labels (fixed page sections)',
+      admin: { description: 'Eyebrow/heading/lede for this page’s built-in sections.' },
+      fields: [
+        { name: 'beforeAfterEyebrow', type: 'text' },
+        { name: 'beforeAfterHeading', type: 'text' },
+        { name: 'beforeAfterLede', type: 'textarea' },
+        { name: 'photosEyebrow', type: 'text' },
+        { name: 'photosHeading', type: 'text' },
+        { name: 'photosLede', type: 'textarea' },
+        { name: 'whyEyebrow', type: 'text' },
+        { name: 'whyHeading', type: 'text' },
+        { name: 'whyLede', type: 'textarea' },
+        { name: 'exampleEyebrow', type: 'text' },
+        { name: 'exampleHeading', type: 'text' },
+        { name: 'exampleLede', type: 'textarea' },
+        { name: 'processEyebrow', type: 'text' },
+        { name: 'processHeading', type: 'text' },
+        { name: 'processLede', type: 'textarea' },
+      ],
+    },
+    {
       name: 'sections',
       type: 'blocks',
       blocks: [
