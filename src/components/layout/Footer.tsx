@@ -26,12 +26,13 @@ type FooterProps = {
   whatsappNumber?: string | null
   email?: string | null
   tagline?: string | null
+  awardLine?: string | null
   socials?: SiteSetting['socials']
   /** Footer nav from the navigation global; QUICK_LINKS fallback. */
   navItems?: Navigation['footerNav']
 }
 
-export function Footer({ phone, whatsappNumber, email, tagline, socials, navItems }: FooterProps = {}) {
+export function Footer({ phone, whatsappNumber, email, tagline, awardLine, socials, navItems }: FooterProps = {}) {
   const year = new Date().getFullYear()
   const towns = AREAS.filter((a) => !a.hub)
   const hubs = AREAS.filter((a) => a.hub)
@@ -69,11 +70,13 @@ export function Footer({ phone, whatsappNumber, email, tagline, socials, navItem
           <p className="font-display text-2xl font-bold text-white">
             Eazy<span className="text-brand-500">Base</span>
           </p>
-          <p className="mt-3 max-w-xs text-sm leading-relaxed">{taglineText}</p>
+          <p data-eb-edit="site-settings:site-settings:tagline" className="mt-3 max-w-xs text-sm leading-relaxed">
+            {taglineText}
+          </p>
           <p className="mt-4 flex items-start gap-2 text-sm leading-snug">
             <span className="eb-block-accent mt-1 h-2 w-3.5 shrink-0" aria-hidden="true" />
-            <span>
-              <span className="font-semibold text-white">{SITE.awardBody}</span> — {SITE.award}
+            <span data-eb-edit="site-settings:site-settings:awardLine">
+              {awardLine || `${SITE.awardBody} — ${SITE.award}`}
             </span>
           </p>
           <p className="mt-4 text-sm">Factory-built in {SITE.base}.</p>
@@ -159,7 +162,7 @@ export function Footer({ phone, whatsappNumber, email, tagline, socials, navItem
                 href={`mailto:${emailAddress}`}
                 className="inline-block py-1 transition-colors hover:text-brand-400"
               >
-                {emailAddress}
+                <span data-eb-edit="site-settings:site-settings:email">{emailAddress}</span>
               </a>
             </li>
           </ul>

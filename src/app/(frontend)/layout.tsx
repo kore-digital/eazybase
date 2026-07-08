@@ -78,6 +78,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
             whatsappNumber={settings?.whatsappNumber}
             email={settings?.email}
             tagline={settings?.tagline}
+            awardLine={settings?.awardLine}
             socials={settings?.socials}
             navItems={navigation?.footerNav}
           />
