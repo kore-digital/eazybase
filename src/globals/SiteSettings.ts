@@ -1,6 +1,6 @@
 import type { GlobalConfig } from 'payload'
 
-import { isAdminOrEditor } from '../access/roles'
+import { isAdminFieldLevel, isAdminOrEditor } from '../access/roles'
 import { globalRevalidateHooks } from '../lib/revalidate-hooks'
 
 export const SiteSettings: GlobalConfig = {
@@ -45,6 +45,16 @@ export const SiteSettings: GlobalConfig = {
         { name: 'installDays', type: 'number', admin: { description: 'On-site install, days' } },
         { name: 'guaranteeYears', type: 'number', admin: { description: 'Guarantee, years' } },
       ],
+    },
+    {
+      // PIN that unlocks the "EazyBase Analytics" phone app (/analytics). Admin-only:
+      // stripped from all public API reads; the app reads it server-side to verify.
+      name: 'analyticsPin',
+      type: 'text',
+      access: { read: isAdminFieldLevel, update: isAdminFieldLevel },
+      admin: {
+        description: 'A 4–6 digit PIN to open the EazyBase Analytics phone app. Set/change it here.',
+      },
     },
   ],
 }

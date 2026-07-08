@@ -1153,6 +1153,10 @@ export interface SiteSetting {
      */
     guaranteeYears?: number | null;
   };
+  /**
+   * A 4–6 digit PIN to open the EazyBase Analytics phone app. Set/change it here.
+   */
+  analyticsPin?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1264,6 +1268,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         installDays?: T;
         guaranteeYears?: T;
       };
+  analyticsPin?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
