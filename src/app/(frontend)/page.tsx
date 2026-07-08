@@ -175,8 +175,13 @@ export default async function HomePage() {
           <div className="eb-container py-16 md:py-24">
             <Reveal>
               <SectionHeading
-                eyebrow="Use cases"
-                lede="Four of the most popular ways homeowners put their new space to work."
+                eyebrow={useCases?.block.eyebrow || 'Use cases'}
+                eyebrowEdit={useCases ? `${editBase(useCases.index)}.eyebrow` : undefined}
+                lede={
+                  useCases?.block.lede ||
+                  'Four of the most popular ways homeowners put their new space to work.'
+                }
+                ledeEdit={useCases ? `${editBase(useCases.index)}.lede` : undefined}
               >
                 <span data-eb-edit={useCases ? `${editBase(useCases.index)}.heading` : undefined}>
                   {useCases?.block.heading ?? 'One extension, endless uses'}
@@ -203,6 +208,10 @@ export default async function HomePage() {
       <TestimonialStrip
         heading={testimonialStrip?.block.heading}
         headingEdit={testimonialStrip ? `${editBase(testimonialStrip.index)}.heading` : undefined}
+        eyebrow={testimonialStrip?.block.eyebrow}
+        eyebrowEdit={testimonialStrip ? `${editBase(testimonialStrip.index)}.eyebrow` : undefined}
+        lede={testimonialStrip?.block.lede}
+        ledeEdit={testimonialStrip ? `${editBase(testimonialStrip.index)}.lede` : undefined}
         testimonials={featuredTestimonials}
       />
 
@@ -226,6 +235,10 @@ export default async function HomePage() {
       <GalleryTeaser
         heading={galleryStrip?.block.heading}
         headingEdit={galleryStrip ? `${editBase(galleryStrip.index)}.heading` : undefined}
+        eyebrow={galleryStrip?.block.eyebrow}
+        eyebrowEdit={galleryStrip ? `${editBase(galleryStrip.index)}.eyebrow` : undefined}
+        lede={galleryStrip?.block.lede}
+        ledeEdit={galleryStrip ? `${editBase(galleryStrip.index)}.lede` : undefined}
         items={exteriors.length >= 6 ? exteriors : galleryItems}
       />
 

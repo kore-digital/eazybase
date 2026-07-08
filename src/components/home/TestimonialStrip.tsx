@@ -17,10 +17,22 @@ type TestimonialStripProps = {
   heading?: string | null
   /** e.g. "pages:1:sections.5.heading" */
   headingEdit?: string
+  eyebrow?: string | null
+  eyebrowEdit?: string
+  lede?: string | null
+  ledeEdit?: string
   testimonials: Testimonial[]
 }
 
-export function TestimonialStrip({ heading, headingEdit, testimonials }: TestimonialStripProps) {
+export function TestimonialStrip({
+  heading,
+  headingEdit,
+  eyebrow,
+  eyebrowEdit,
+  lede,
+  ledeEdit,
+  testimonials,
+}: TestimonialStripProps) {
   if (testimonials.length === 0) return null
 
   return (
@@ -29,8 +41,10 @@ export function TestimonialStrip({ heading, headingEdit, testimonials }: Testimo
         <Reveal>
           <SectionHeading
             onDark
-            eyebrow="Reviews"
-            lede="Real reviews from homeowners across the North West and London."
+            eyebrow={eyebrow || 'Reviews'}
+            eyebrowEdit={eyebrowEdit}
+            lede={lede || 'Real reviews from homeowners across the North West and London.'}
+            ledeEdit={ledeEdit}
           >
             <span data-eb-edit={headingEdit}>{heading ?? 'What our customers say'}</span>
           </SectionHeading>

@@ -4,6 +4,7 @@ import * as migration_20260707_150000_quote_pricing_and_survey from './20260707_
 import * as migration_20260707_170000_add_site_settings_tiktok from './20260707_170000_add_site_settings_tiktok';
 import * as migration_20260708_110000_add_site_settings_analytics_pin from './20260708_110000_add_site_settings_analytics_pin';
 import * as migration_20260708_140000_add_site_settings_home_photos from './20260708_140000_add_site_settings_home_photos';
+import * as migration_20260708_160000_add_block_eyebrow_lede from './20260708_160000_add_block_eyebrow_lede';
 
 export const migrations = [
   {
@@ -35,5 +36,10 @@ export const migrations = [
     up: migration_20260708_140000_add_site_settings_home_photos.up,
     down: migration_20260708_140000_add_site_settings_home_photos.down,
     name: '20260708_140000_add_site_settings_home_photos'
+  },
+  {
+    up: migration_20260708_160000_add_block_eyebrow_lede.up,
+    down: migration_20260708_160000_add_block_eyebrow_lede.down,
+    name: '20260708_160000_add_block_eyebrow_lede'
   },
 ];

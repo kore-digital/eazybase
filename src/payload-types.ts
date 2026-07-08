@@ -280,7 +280,9 @@ export interface ImageTextBlock {
  * via the `definition` "UseCaseTabsBlock".
  */
 export interface UseCaseTabsBlock {
+  eyebrow?: string | null;
   heading?: string | null;
+  lede?: string | null;
   tabs?:
     | {
         label: string;
@@ -379,7 +381,9 @@ export interface Faq {
  * via the `definition` "TestimonialStripBlock".
  */
 export interface TestimonialStripBlock {
+  eyebrow?: string | null;
   heading?: string | null;
+  lede?: string | null;
   /**
    * Leave empty to show featured testimonials.
    */
@@ -410,7 +414,9 @@ export interface Testimonial {
  * via the `definition` "GalleryStripBlock".
  */
 export interface GalleryStripBlock {
+  eyebrow?: string | null;
   heading?: string | null;
+  lede?: string | null;
   /**
    * Optional filter — leave empty to use the picked items below.
    */
@@ -772,7 +778,9 @@ export interface ImageTextBlockSelect<T extends boolean = true> {
  * via the `definition` "UseCaseTabsBlock_select".
  */
 export interface UseCaseTabsBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
+  lede?: T;
   tabs?:
     | T
     | {
@@ -845,7 +853,9 @@ export interface FaqListBlockSelect<T extends boolean = true> {
  * via the `definition` "TestimonialStripBlock_select".
  */
 export interface TestimonialStripBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
+  lede?: T;
   testimonials?: T;
   id?: T;
   blockName?: T;
@@ -855,7 +865,9 @@ export interface TestimonialStripBlockSelect<T extends boolean = true> {
  * via the `definition` "GalleryStripBlock_select".
  */
 export interface GalleryStripBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
   heading?: T;
+  lede?: T;
   category?: T;
   items?: T;
   id?: T;

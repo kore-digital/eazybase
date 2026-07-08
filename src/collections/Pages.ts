@@ -40,7 +40,9 @@ const UseCaseTabsBlock: Block = {
   slug: 'useCaseTabs',
   interfaceName: 'UseCaseTabsBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
+    { name: 'lede', type: 'textarea' },
     {
       name: 'tabs',
       type: 'array',
@@ -131,7 +133,9 @@ const TestimonialStripBlock: Block = {
   slug: 'testimonialStrip',
   interfaceName: 'TestimonialStripBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
+    { name: 'lede', type: 'textarea' },
     {
       name: 'testimonials',
       type: 'relationship',
@@ -146,7 +150,9 @@ const GalleryStripBlock: Block = {
   slug: 'galleryStrip',
   interfaceName: 'GalleryStripBlock',
   fields: [
+    { name: 'eyebrow', type: 'text' },
     { name: 'heading', type: 'text' },
+    { name: 'lede', type: 'textarea' },
     {
       name: 'category',
       type: 'select',

@@ -3,10 +3,14 @@ import type { ReactNode } from 'react'
 type SectionHeadingProps = {
   /** Small-caps green kicker above the heading, e.g. "What We Do". */
   eyebrow?: string
+  /** data-eb-edit key to make the eyebrow inline-editable. */
+  eyebrowEdit?: string
   /** The heading itself. */
   children: ReactNode
   /** Optional supporting paragraph under the heading. */
   lede?: ReactNode
+  /** data-eb-edit key to make a (string) lede inline-editable. */
+  ledeEdit?: string
   /** Layout variant. Defaults to centred. */
   align?: 'center' | 'left'
   /** Heading level (defaults to h2). */
@@ -22,8 +26,10 @@ type SectionHeadingProps = {
  */
 export function SectionHeading({
   eyebrow,
+  eyebrowEdit,
   children,
   lede,
+  ledeEdit,
   align = 'center',
   as: Tag = 'h2',
   onDark = false,
@@ -48,7 +54,7 @@ export function SectionHeading({
           ].join(' ')}
         >
           <span className="eb-block-accent h-2.5 w-4" aria-hidden="true" />
-          {eyebrow}
+          {eyebrowEdit ? <span data-eb-edit={eyebrowEdit}>{eyebrow}</span> : eyebrow}
         </p>
       ) : null}
 
@@ -68,7 +74,7 @@ export function SectionHeading({
             onDark ? 'text-ink-200' : 'text-ink-500',
           ].join(' ')}
         >
-          {lede}
+          {ledeEdit ? <span data-eb-edit={ledeEdit}>{lede}</span> : lede}
         </p>
       ) : null}
     </div>

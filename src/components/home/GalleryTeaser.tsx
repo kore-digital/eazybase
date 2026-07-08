@@ -15,10 +15,22 @@ type GalleryTeaserProps = {
   heading?: string | null
   /** e.g. "pages:1:sections.4.heading" */
   headingEdit?: string
+  eyebrow?: string | null
+  eyebrowEdit?: string
+  lede?: string | null
+  ledeEdit?: string
   items: GalleryItem[]
 }
 
-export function GalleryTeaser({ heading, headingEdit, items }: GalleryTeaserProps) {
+export function GalleryTeaser({
+  heading,
+  headingEdit,
+  eyebrow,
+  eyebrowEdit,
+  lede,
+  ledeEdit,
+  items,
+}: GalleryTeaserProps) {
   const images = items
     .map((item) => ({ item, image: galleryImage(item, 'card') }))
     .filter((entry): entry is { item: GalleryItem; image: NonNullable<ReturnType<typeof galleryImage>> } => entry.image !== null)
@@ -31,8 +43,13 @@ export function GalleryTeaser({ heading, headingEdit, items }: GalleryTeaserProp
       <div className="eb-container py-16 md:py-24">
         <Reveal>
           <SectionHeading
-            eyebrow="Our work"
-            lede="Every photo is a real EazyBase build — factory-made in Blackburn, installed at homes like yours."
+            eyebrow={eyebrow || 'Our work'}
+            eyebrowEdit={eyebrowEdit}
+            lede={
+              lede ||
+              'Every photo is a real EazyBase build — factory-made in Blackburn, installed at homes like yours.'
+            }
+            ledeEdit={ledeEdit}
           >
             <span data-eb-edit={headingEdit}>{heading ?? 'Recent projects'}</span>
           </SectionHeading>
