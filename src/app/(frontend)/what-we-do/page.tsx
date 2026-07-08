@@ -180,7 +180,12 @@ export default async function WhatWeDoPage() {
       <section className="py-16 sm:py-24">
         <div className="eb-container">
           <Reveal>
-            <SectionHeading eyebrow="What we do" align="left" className="mb-6 max-w-3xl">
+            <SectionHeading
+              eyebrow={richTextBlock?.eyebrow || 'What we do'}
+              eyebrowEdit={page ? `pages:${page.id}:sections.${richTextIdx}.eyebrow` : undefined}
+              align="left"
+              className="mb-6 max-w-3xl"
+            >
               {richTextBlock?.heading ? (
                 <span {...edit(`sections.${richTextIdx}.heading`)}>{richTextBlock.heading}</span>
               ) : (
@@ -280,7 +285,11 @@ export default async function WhatWeDoPage() {
         />
         <div className="eb-container relative">
           <Reveal>
-            <SectionHeading onDark eyebrow="The numbers">
+            <SectionHeading
+              onDark
+              eyebrow={statsBlock?.eyebrow || 'The numbers'}
+              eyebrowEdit={page ? `pages:${page.id}:sections.${statsIdx}.eyebrow` : undefined}
+            >
               {statsBlock?.heading ? (
                 <span {...edit(`sections.${statsIdx}.heading`)}>{statsBlock.heading}</span>
               ) : (
@@ -313,8 +322,10 @@ export default async function WhatWeDoPage() {
           <div className="eb-container">
             <Reveal>
               <SectionHeading
-                eyebrow="Behind the scenes"
-                lede="Follow a build from insulated factory panels to a finished, plastered room."
+                eyebrow={stripBlock?.eyebrow || 'Behind the scenes'}
+                eyebrowEdit={page ? `pages:${page.id}:sections.${stripIdx}.eyebrow` : undefined}
+                lede={stripBlock?.lede || 'Follow a build from insulated factory panels to a finished, plastered room.'}
+                ledeEdit={page ? `pages:${page.id}:sections.${stripIdx}.lede` : undefined}
               >
                 {stripBlock?.heading ? (
                   <span {...edit(`sections.${stripIdx}.heading`)}>{stripBlock.heading}</span>
