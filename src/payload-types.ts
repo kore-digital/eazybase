@@ -1154,7 +1154,20 @@ export interface SiteSetting {
     guaranteeYears?: number | null;
   };
   /**
-   * A 4–6 digit PIN to open the EazyBase Analytics phone app. Set/change it here.
+   * The two full-width photo bands on the home page.
+   */
+  homePhotos?: {
+    band1Image?: (number | null) | Media;
+    band1Eyebrow?: string | null;
+    band1Heading?: string | null;
+    band1Sub?: string | null;
+    band2Image?: (number | null) | Media;
+    band2Eyebrow?: string | null;
+    band2Heading?: string | null;
+    band2Sub?: string | null;
+  };
+  /**
+   * The 4–6 digit PIN that unlocks the EazyBase Analytics phone app (eazybase-kohl.vercel.app/analytics). Change it any time — it takes effect immediately.
    */
   analyticsPin?: string | null;
   updatedAt?: string | null;
@@ -1267,6 +1280,18 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         factoryWeeks?: T;
         installDays?: T;
         guaranteeYears?: T;
+      };
+  homePhotos?:
+    | T
+    | {
+        band1Image?: T;
+        band1Eyebrow?: T;
+        band1Heading?: T;
+        band1Sub?: T;
+        band2Image?: T;
+        band2Eyebrow?: T;
+        band2Heading?: T;
+        band2Sub?: T;
       };
   analyticsPin?: T;
   updatedAt?: T;

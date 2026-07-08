@@ -47,6 +47,24 @@ export const SiteSettings: GlobalConfig = {
       ],
     },
     {
+      // The two full-width photo bands on the home page (HQ/fleet + team). Editable
+      // via the live editor; each falls back to its original static photo/caption.
+      name: 'homePhotos',
+      type: 'group',
+      label: 'Home page photo bands',
+      admin: { description: 'The two full-width photo bands on the home page.' },
+      fields: [
+        { name: 'band1Image', type: 'upload', relationTo: 'media', label: 'Band 1 image (HQ / fleet)' },
+        { name: 'band1Eyebrow', type: 'text' },
+        { name: 'band1Heading', type: 'text' },
+        { name: 'band1Sub', type: 'textarea' },
+        { name: 'band2Image', type: 'upload', relationTo: 'media', label: 'Band 2 image (team)' },
+        { name: 'band2Eyebrow', type: 'text' },
+        { name: 'band2Heading', type: 'text' },
+        { name: 'band2Sub', type: 'textarea' },
+      ],
+    },
+    {
       // PIN that unlocks the "EazyBase Analytics" phone app (/analytics). Admin-only:
       // stripped from all public API reads; the app reads it server-side to verify.
       name: 'analyticsPin',

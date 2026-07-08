@@ -25,7 +25,7 @@ import { CTABand } from '@/components/ui/CTABand'
 import { Reveal } from '@/components/ui/Reveal'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { ParallaxSection } from '@/components/ui/ParallaxSection'
-import { getGalleryItems, getPage, getTestimonials } from '@/lib/data'
+import { getGalleryItems, getPage, getSiteSettings, getTestimonials } from '@/lib/data'
 import { jsonLdScript, organization, website } from '@/lib/jsonld'
 import type { Page } from '@/payload-types'
 
@@ -63,12 +63,19 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [page, testimonials, galleryItems, award] = await Promise.all([
+  const [page, testimonials, galleryItems, award, settings] = await Promise.all([
     getPage('home'),
     getTestimonials(),
     getGalleryItems(),
     getFeaturedAward(),
+    getSiteSettings(),
   ])
+
+  // Home photo bands — CMS-editable, falling back to the original static photos/copy.
+  const hp = settings?.homePhotos
+  const sk = (f: string) => `site-settings:site-settings:homePhotos.${f}`
+  const band1Src = mediaURL(resolveMedia(hp?.band1Image), 'hero') ?? '/hq-fleet.jpg'
+  const band2Src = mediaURL(resolveMedia(hp?.band2Image), 'hero') ?? '/team-extension.jpg'
 
   const sections: Section[] = page?.sections ?? []
   const editBase = (index: number) => `pages:${page?.id}:sections.${index}`
@@ -144,11 +151,18 @@ export default async function HomePage() {
 
       {/* 3.5 — HQ + fleet credibility band */}
       <PhotoBand
-        src="/hq-fleet.jpg"
+        src={band1Src}
         alt="EazyBase headquarters and branded delivery fleet"
-        eyebrow="Our home"
-        heading="Designed, built and delivered in-house"
-        sub="Every extension is manufactured at our own facility and delivered by our own branded fleet — one team, start to finish."
+        eyebrow={hp?.band1Eyebrow || 'Our home'}
+        heading={hp?.band1Heading || 'Designed, built and delivered in-house'}
+        sub={
+          hp?.band1Sub ||
+          'Every extension is manufactured at our own facility and delivered by our own branded fleet — one team, start to finish.'
+        }
+        editImageKey={sk('band1Image')}
+        editEyebrowKey={sk('band1Eyebrow')}
+        editHeadingKey={sk('band1Heading')}
+        editSubKey={sk('band1Sub')}
       />
 
       {/* 4 — Use cases: Kids Playrooms / Home Office / Dining Rooms / Kitchens */}
@@ -190,11 +204,18 @@ export default async function HomePage() {
 
       {/* 6.5 — Team on site */}
       <PhotoBand
-        src="/team-extension.jpg"
+        src={band2Src}
         alt="The EazyBase team on site in front of a completed rear extension"
-        eyebrow="Our team"
-        heading="One team, from survey to sign-off"
-        sub="The same EazyBase crew designs, builds and installs your extension — no subcontractors passing the job around."
+        eyebrow={hp?.band2Eyebrow || 'Our team'}
+        heading={hp?.band2Heading || 'One team, from survey to sign-off'}
+        sub={
+          hp?.band2Sub ||
+          'The same EazyBase crew designs, builds and installs your extension — no subcontractors passing the job around.'
+        }
+        editImageKey={sk('band2Image')}
+        editEyebrowKey={sk('band2Eyebrow')}
+        editHeadingKey={sk('band2Heading')}
+        editSubKey={sk('band2Sub')}
       />
 
       {/* 7 — Gallery teaser */}
