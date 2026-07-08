@@ -2,6 +2,8 @@
 
 import { useTransition } from 'react'
 
+import { EazyBaseMark } from '@/components/brand/EazyBaseMark'
+
 import { signOut } from './actions'
 
 /** Sticky app header with the brand mark + a sign-out (clears the PIN cookie). */
@@ -13,12 +15,8 @@ export function AppHeader() {
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.85rem)' }}
     >
       <div className="flex items-center gap-2.5">
-        <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
-          <svg viewBox="0 0 512 512" className="h-4.5 w-4.5">
-            <rect x="119" y="286" width="74" height="110" rx="14" fill="#1e1f1d" />
-            <rect x="219" y="226" width="74" height="170" rx="14" fill="#1e1f1d" />
-            <rect x="319" y="166" width="74" height="230" rx="14" fill="#1e1f1d" />
-          </svg>
+        <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+          <EazyBaseMark className="h-5 w-5" />
         </span>
         <div>
           <p className="font-display text-sm font-bold leading-tight">EazyBase Analytics</p>

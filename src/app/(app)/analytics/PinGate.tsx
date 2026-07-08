@@ -2,6 +2,8 @@
 
 import { useActionState, useEffect } from 'react'
 
+import { EazyBaseMark } from '@/components/brand/EazyBaseMark'
+
 import { unlock, type UnlockState } from './actions'
 
 const initial: UnlockState = { status: 'idle' }
@@ -21,12 +23,8 @@ export function PinGate() {
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="w-full max-w-xs text-center">
-        <span aria-hidden="true" className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500">
-          <svg viewBox="0 0 512 512" className="h-9 w-9">
-            <rect x="119" y="286" width="74" height="110" rx="14" fill="#1e1f1d" />
-            <rect x="219" y="226" width="74" height="170" rx="14" fill="#1e1f1d" />
-            <rect x="319" y="166" width="74" height="230" rx="14" fill="#1e1f1d" />
-          </svg>
+        <span aria-hidden="true" className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-white shadow-lg">
+          <EazyBaseMark className="h-12 w-12" />
         </span>
         <h1 className="mt-5 font-display text-2xl font-bold">EazyBase Analytics</h1>
         <p className="mt-2 text-sm text-ink-300">Enter your PIN to unlock.</p>

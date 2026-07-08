@@ -38,10 +38,11 @@ export const metadata: Metadata = {
   // satisfies clients that request /favicon.ico directly (no more 404s).
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/favicon.ico', sizes: '48x48' },
       { url: '/favicon.svg', type: 'image/svg+xml' },
     ],
     shortcut: '/favicon.ico',
+    apple: '/icons/analytics-180.png',
   },
   openGraph: {
     type: 'website',
