@@ -180,19 +180,22 @@ export function VisitorMapClient({
             const pillW = 30 + label.length * 8.5
             const isHover = hover === idx
             return (
-              <g
-                key={idx}
-                className="eb-mk"
-                style={{ cursor: 'pointer' }}
-                transform={`translate(${mx}, ${my})`}
-                onMouseEnter={() => setHover(idx)}
-                onMouseLeave={() => setHover(null)}
-                onClick={() => {
-                  if (!moved.current) setHover((h) => (h === idx ? null : idx))
-                }}
-              >
-                {/* pulse + location dot */}
-                <circle cx={0} cy={0} r={8} className="eb-pulse" fill="#96c11f" />
+              // Outer group holds the position (attribute). The inner .eb-mk group
+              // carries the pop/hover animation — keeping the CSS `transform`
+              // animation OFF the positioned element, or it would override the
+              // translate and pile every marker at the SVG origin.
+              <g key={idx} transform={`translate(${mx}, ${my})`}>
+                <g
+                  className="eb-mk"
+                  style={{ cursor: 'pointer' }}
+                  onMouseEnter={() => setHover(idx)}
+                  onMouseLeave={() => setHover(null)}
+                  onClick={() => {
+                    if (!moved.current) setHover((h) => (h === idx ? null : idx))
+                  }}
+                >
+                  {/* pulse + location dot */}
+                  <circle cx={0} cy={0} r={8} className="eb-pulse" fill="#96c11f" />
                 <circle cx={0} cy={0} r={4.5} fill="#6f9e14" stroke="#fff" strokeWidth={1.5} />
 
                 {/* count pill with pointer, above the dot */}
@@ -226,6 +229,7 @@ export function VisitorMapClient({
                       )
                     })()
                   : null}
+                </g>
               </g>
             )
           })}
