@@ -4,7 +4,7 @@
  * Analytics data itself is always fetched fresh (network-first) so numbers are
  * never stale — the cache is only a fallback.
  */
-const CACHE = 'eb-analytics-v1'
+const CACHE = 'eb-analytics-v2'
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
@@ -33,5 +33,39 @@ self.addEventListener('fetch', (event) => {
         return res
       })
       .catch(() => caches.match(req).then((r) => r || caches.match('/analytics'))),
+  )
+})
+
+// ── Push notifications ──────────────────────────────────────────────────────
+// New-lead and follow-up-due alerts, sent from the server via web-push.
+self.addEventListener('push', (event) => {
+  let data = { title: 'EazyBase', body: 'You have a new update.', url: '/analytics', tag: 'eazybase' }
+  try {
+    if (event.data) data = { ...data, ...event.data.json() }
+  } catch (_e) {
+    if (event.data) data.body = event.data.text()
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      tag: data.tag,
+      icon: '/icons/analytics-192.png',
+      badge: '/icons/analytics-192.png',
+      data: { url: data.url || '/analytics' },
+      vibrate: [80, 40, 80],
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = (event.notification.data && event.notification.data.url) || '/analytics'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes('/analytics') && 'focus' in client) return client.focus()
+      }
+      return self.clients.openWindow(target)
+    }),
   )
 })

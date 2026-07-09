@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { anyone, isAdmin, isAdminFieldLevel, isAdminOrEditor } from '../access/roles'
 import { PROPERTY_TYPES, TIMELINES } from '../components/quote/pricing'
 import { FROM_CUSTOMER, FROM_TEAM, customerConfirmEmail, leadNotifyTo, teamLeadEmail } from '../lib/email'
+import { sendLeadPush } from '../lib/push'
 
 export const QuoteRequests: CollectionConfig = {
   slug: 'quote-requests',
@@ -63,6 +64,14 @@ export const QuoteRequests: CollectionConfig = {
           } catch (err) {
             req.payload.logger.error(`[quote-requests] confirmation email failed: ${String(err)}`)
           }
+        }
+
+        // 3) Push a phone notification to the analytics app (best-effort; no-ops
+        //    when VAPID keys are unset).
+        try {
+          await sendLeadPush(req.payload, doc)
+        } catch (err) {
+          req.payload.logger.error(`[quote-requests] lead push failed: ${String(err)}`)
         }
       },
     ],
@@ -134,6 +143,13 @@ export const QuoteRequests: CollectionConfig = {
       type: 'select',
       options: [
         { label: 'New', value: 'new' },
+        { label: 'Emailed — no answer', value: 'emailed_no_answer' },
+        { label: 'Called — no answer', value: 'called_no_answer' },
+        { label: 'Spoke to customer', value: 'spoke' },
+        { label: 'Quote sent', value: 'quote_sent' },
+        { label: 'Won', value: 'won' },
+        { label: 'Lost', value: 'lost' },
+        // Legacy values — kept so pre-existing leads still render.
         { label: 'Contacted', value: 'contacted' },
         { label: 'Closed', value: 'closed' },
       ],
@@ -144,6 +160,32 @@ export const QuoteRequests: CollectionConfig = {
         update: isAdminFieldLevel,
       },
       admin: { position: 'sidebar' },
+    },
+    {
+      name: 'lastContactedAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        description: 'Set when the lead is emailed/called/spoken to.',
+        date: { pickerAppearance: 'dayAndTime' },
+      },
+    },
+    {
+      name: 'nextFollowUpAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        description: 'When this lead is due a chase. Auto-set 7 days ahead on "no answer".',
+        date: { pickerAppearance: 'dayAndTime' },
+      },
+    },
+    {
+      name: 'internalNotes',
+      type: 'textarea',
+      admin: {
+        position: 'sidebar',
+        description: 'Private staff notes (not shown to the customer).',
+      },
     },
   ],
 }

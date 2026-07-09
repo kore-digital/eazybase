@@ -1,7 +1,9 @@
 import React from 'react'
 
-import type { LeadsData } from '@/lib/analytics-data'
+import { STATUS_LABELS, type LeadsBoard, type LeadsData } from '@/lib/analytics-data'
 
+import { LeadsManager } from './LeadsManager'
+import { PushSetup } from './PushSetup'
 import { BarRow, CHART_COLOURS, Empty, Panel, Tile } from './parts'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -9,9 +11,16 @@ const TYPE_LABELS: Record<string, string> = {
   instant: 'Instant quote',
   assistant: 'Quote assistant',
 }
-const STATUS_LABELS: Record<string, string> = { new: 'New', contacted: 'Contacted', closed: 'Closed' }
 
-export function LeadsPanel({ data }: { data: LeadsData }) {
+export function LeadsPanel({
+  data,
+  board,
+  newSince,
+}: {
+  data: LeadsData
+  board: LeadsBoard
+  newSince: number
+}) {
   const maxMonth = Math.max(1, ...data.monthly.map((m) => m.count))
   const maxTown = Math.max(1, ...data.towns.map((t) => t[1]))
   const maxType = Math.max(1, ...data.byType.map((t) => t[1]))
@@ -19,10 +28,25 @@ export function LeadsPanel({ data }: { data: LeadsData }) {
 
   return (
     <div>
+      {/* Stat tiles */}
       <div className="grid grid-cols-3 gap-2.5">
-        <Tile num={data.total} label="Total leads" tone="purple" />
-        <Tile num={data.newLeads} label="New leads" tone="orange" />
+        <Tile num={board.openCount} label="Open leads" tone="purple" />
+        <Tile num={board.dueFollowUps.length} label="Chases due" tone="orange" />
         <Tile num={data.avgEstimate ? `£${(data.avgEstimate / 1000).toFixed(0)}k` : '—'} label="Avg estimate" tone="dark" />
+      </div>
+
+      {/* Alerts opt-in */}
+      <PushSetup />
+
+      {/* The working list */}
+      <div className="mt-3">
+        <LeadsManager board={board} newSince={newSince} />
+      </div>
+
+      {/* ── Insights (date-range applies below) ────────────────────────────── */}
+      <div className="mt-6 mb-1 flex items-center gap-2">
+        <h2 className="font-display text-[13px] font-bold uppercase tracking-wide text-ink-400">Insights</h2>
+        <span className="text-[11px] text-ink-300">for the selected dates</span>
       </div>
 
       <Panel title="Leads over time">
@@ -60,28 +84,6 @@ export function LeadsPanel({ data }: { data: LeadsData }) {
           data.byStatus.map(([status, n], i) => (
             <BarRow key={status} label={STATUS_LABELS[status] ?? status} value={n} max={maxStatus} color={CHART_COLOURS[i % CHART_COLOURS.length]} />
           ))
-        )}
-      </Panel>
-
-      <Panel title="Recent enquiries">
-        {data.recent.length === 0 ? (
-          <Empty>No enquiries yet.</Empty>
-        ) : (
-          <ul className="divide-y divide-ink-100">
-            {data.recent.map((q) => (
-              <li key={String(q.id)} className="flex items-center gap-3 py-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[11px] font-bold text-brand-800">
-                  {(q.firstName ?? q.email ?? '?').slice(0, 1).toUpperCase()}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[13px] font-semibold text-ink-900">{q.firstName ?? q.email ?? 'Enquiry'}</span>
-                  <span className="block truncate text-[11px] text-ink-400">
-                    {q.town ? `${q.town} · ` : ''}{TYPE_LABELS[q.type ?? ''] ?? 'Quote'}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
         )}
       </Panel>
     </div>

@@ -75,6 +75,7 @@ export interface Config {
     awards: Award;
     media: Media;
     'quote-requests': QuoteRequest;
+    'push-subscriptions': PushSubscription;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -91,6 +92,7 @@ export interface Config {
     awards: AwardsSelect<false> | AwardsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'quote-requests': QuoteRequestsSelect<false> | QuoteRequestsSelect<true>;
+    'push-subscriptions': PushSubscriptionsSelect<false> | PushSubscriptionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -619,7 +621,36 @@ export interface QuoteRequest {
      */
     distanceMiles?: number | null;
   };
-  status: 'new' | 'contacted' | 'closed';
+  status:
+    'new' | 'emailed_no_answer' | 'called_no_answer' | 'spoke' | 'quote_sent' | 'won' | 'lost' | 'contacted' | 'closed';
+  /**
+   * Set when the lead is emailed/called/spoken to.
+   */
+  lastContactedAt?: string | null;
+  /**
+   * When this lead is due a chase. Auto-set 7 days ahead on "no answer".
+   */
+  nextFollowUpAt?: string | null;
+  /**
+   * Private staff notes (not shown to the customer).
+   */
+  internalNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-subscriptions".
+ */
+export interface PushSubscription {
+  id: number;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  /**
+   * Device / browser it was created from.
+   */
+  label?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -705,6 +736,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'quote-requests';
         value: number | QuoteRequest;
+      } | null)
+    | ({
+        relationTo: 'push-subscriptions';
+        value: number | PushSubscription;
       } | null)
     | ({
         relationTo: 'users';
@@ -1120,6 +1155,21 @@ export interface QuoteRequestsSelect<T extends boolean = true> {
         distanceMiles?: T;
       };
   status?: T;
+  lastContactedAt?: T;
+  nextFollowUpAt?: T;
+  internalNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-subscriptions_select".
+ */
+export interface PushSubscriptionsSelect<T extends boolean = true> {
+  endpoint?: T;
+  p256dh?: T;
+  auth?: T;
+  label?: T;
   updatedAt?: T;
   createdAt?: T;
 }

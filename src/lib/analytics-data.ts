@@ -10,6 +10,11 @@ import { getPayload } from 'payload'
 
 import { hogql, posthogConfigured } from '@/lib/posthog'
 import { addDays, ymd, type DateRange } from '@/lib/analytics-range'
+import { CLOSED_STATUSES, STATUS_LABELS, type LeadRow, type LeadsBoard } from '@/lib/leads-types'
+
+// Re-exported for server components that already import from this module.
+export { CLOSED_STATUSES, STATUS_LABELS }
+export type { LeadRow, LeadsBoard }
 
 export type CityPoint = { name: string; lat: number; lng: number; count: number }
 
@@ -22,16 +27,6 @@ export type TrafficData = {
   clicks: { label: string; n: number }[]
   cities: [string, number][]
   points: CityPoint[]
-}
-
-export type LeadRow = {
-  id: string | number
-  firstName?: string
-  email?: string
-  town?: string
-  type?: string
-  status?: string
-  createdAt?: string
 }
 
 export type LeadsData = {
@@ -200,4 +195,106 @@ export async function getAnalyticsData(range: DateRange): Promise<AnalyticsData>
   }
 
   return { traffic, leads }
+}
+
+type RawQuote = {
+  id: string | number
+  firstName?: string | null
+  lastName?: string | null
+  email?: string | null
+  phone?: string | null
+  town?: string | null
+  postcode?: string | null
+  addressLine1?: string | null
+  message?: string | null
+  type?: string | null
+  status?: string | null
+  createdAt?: string | null
+  lastContactedAt?: string | null
+  nextFollowUpAt?: string | null
+  internalNotes?: string | null
+  estimator?: { estimateLow?: number | null; estimateHigh?: number | null } | null
+}
+
+function toLeadRow(q: RawQuote): LeadRow {
+  return {
+    id: q.id,
+    firstName: q.firstName ?? undefined,
+    lastName: q.lastName ?? undefined,
+    email: q.email ?? undefined,
+    phone: q.phone ?? undefined,
+    town: q.town ?? undefined,
+    postcode: q.postcode ?? undefined,
+    addressLine1: q.addressLine1 ?? undefined,
+    message: q.message ?? undefined,
+    type: q.type ?? undefined,
+    status: q.status ?? 'new',
+    createdAt: q.createdAt ?? undefined,
+    lastContactedAt: q.lastContactedAt ?? null,
+    nextFollowUpAt: q.nextFollowUpAt ?? null,
+    internalNotes: q.internalNotes ?? null,
+    estimateLow: q.estimator?.estimateLow ?? null,
+    estimateHigh: q.estimator?.estimateHigh ?? null,
+  }
+}
+
+/**
+ * The lead-management working set — NOT date-filtered (working a lead isn't a
+ * date-window activity). Open leads sorted with due chases first, then newest;
+ * a separate list of chases due now; and recently closed leads for reference.
+ */
+export async function getLeadsBoard(now: Date = new Date()): Promise<LeadsBoard> {
+  const payload = await getPayload({ config })
+
+  const openResult = await payload.find({
+    collection: 'quote-requests',
+    where: { status: { not_in: [...CLOSED_STATUSES] } },
+    limit: 500,
+    depth: 0,
+    sort: '-createdAt',
+  })
+  const closedResult = await payload.find({
+    collection: 'quote-requests',
+    where: { status: { in: [...CLOSED_STATUSES] } },
+    limit: 20,
+    depth: 0,
+    sort: '-updatedAt',
+  })
+
+  const open = (openResult.docs as unknown as RawQuote[]).map(toLeadRow)
+  const nowMs = now.getTime()
+  const isDue = (l: LeadRow) => l.nextFollowUpAt != null && new Date(l.nextFollowUpAt).getTime() <= nowMs
+
+  const dueFollowUps = open
+    .filter(isDue)
+    .sort((a, b) => new Date(a.nextFollowUpAt!).getTime() - new Date(b.nextFollowUpAt!).getTime())
+
+  // Open list: due first, then everything else by newest.
+  const openLeads = [...open].sort((a, b) => {
+    const ad = isDue(a) ? 0 : 1
+    const bd = isDue(b) ? 0 : 1
+    if (ad !== bd) return ad - bd
+    return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+  })
+
+  return {
+    openLeads,
+    dueFollowUps,
+    recentClosed: (closedResult.docs as unknown as RawQuote[]).map(toLeadRow),
+    openCount: openResult.totalDocs,
+  }
+}
+
+/** Count of leads whose chase is due on/before `now` (for the daily cron). */
+export async function countDueFollowUps(now: Date = new Date()): Promise<number> {
+  const payload = await getPayload({ config })
+  const res = await payload.find({
+    collection: 'quote-requests',
+    where: {
+      and: [{ status: { not_in: [...CLOSED_STATUSES] } }, { nextFollowUpAt: { less_than_equal: now.toISOString() } }],
+    },
+    limit: 0,
+    depth: 0,
+  })
+  return res.totalDocs
 }

@@ -10,6 +10,9 @@ import { cookies } from 'next/headers'
 const COOKIE = 'eb_analytics'
 const MAX_AGE = 60 * 60 * 24 * 60 // 60 days ("one-time" unlock)
 
+/** "Last visit" stamp cookie — drives the analytics "new leads since" badge. */
+export const SEEN_COOKIE = 'eb_seen'
+
 const secret = () => process.env.PAYLOAD_SECRET || 'eazybase-analytics-dev-secret'
 
 function sign(payload: string): string {

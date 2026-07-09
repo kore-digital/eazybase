@@ -8,6 +8,7 @@ import * as migration_20260708_160000_add_block_eyebrow_lede from './20260708_16
 import * as migration_20260708_170000_add_more_block_eyebrow_lede from './20260708_170000_add_more_block_eyebrow_lede';
 import * as migration_20260708_180000_add_pages_hero_eyebrow from './20260708_180000_add_pages_hero_eyebrow';
 import * as migration_20260708_190000_add_pages_section_copy from './20260708_190000_add_pages_section_copy';
+import * as migration_20260709_120000_leads_workflow_and_push from './20260709_120000_leads_workflow_and_push';
 
 export const migrations = [
   {
@@ -59,5 +60,10 @@ export const migrations = [
     up: migration_20260708_190000_add_pages_section_copy.up,
     down: migration_20260708_190000_add_pages_section_copy.down,
     name: '20260708_190000_add_pages_section_copy'
+  },
+  {
+    up: migration_20260709_120000_leads_workflow_and_push.up,
+    down: migration_20260709_120000_leads_workflow_and_push.down,
+    name: '20260709_120000_leads_workflow_and_push'
   },
 ];

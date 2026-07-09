@@ -15,6 +15,7 @@ import { Testimonials } from './collections/Testimonials'
 import { GalleryItems } from './collections/GalleryItems'
 import { Awards } from './collections/Awards'
 import { QuoteRequests } from './collections/QuoteRequests'
+import { PushSubscriptions } from './collections/PushSubscriptions'
 import { Navigation } from './globals/Navigation'
 import { SiteSettings } from './globals/SiteSettings'
 import { QuotePricing } from './globals/QuotePricing'
@@ -37,7 +38,7 @@ export default buildConfig({
       beforeDashboard: ['/components/admin/Dashboard#Dashboard'],
     },
   },
-  collections: [Pages, Areas, FAQs, Testimonials, GalleryItems, Awards, Media, QuoteRequests, Users],
+  collections: [Pages, Areas, FAQs, Testimonials, GalleryItems, Awards, Media, QuoteRequests, PushSubscriptions, Users],
   globals: [SiteSettings, Navigation, QuotePricing],
   // Transactional email via Resend (custom HTTP adapter — see src/lib/email.ts).
   // No-ops with a log when RESEND_API_KEY is unset. Powers admin/system mail
