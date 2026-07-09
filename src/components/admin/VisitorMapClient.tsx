@@ -87,6 +87,8 @@ export function VisitorMapClient({
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     gesture.current = {}
     moved.current = false
+    // Dismiss any open tooltip; a tap that lands on a marker re-shows it below.
+    setHover(null)
   }
 
   function onPointerMove(e: React.PointerEvent<SVGSVGElement>) {
@@ -193,8 +195,10 @@ export function VisitorMapClient({
                   style={{ cursor: 'pointer' }}
                   onMouseEnter={() => setHover(idx)}
                   onMouseLeave={() => setHover(null)}
-                  onClick={() => {
-                    if (!moved.current) setHover((h) => (h === idx ? null : idx))
+                  onClick={(e) => {
+                    // Show this marker's name on a single tap (not a drag).
+                    e.stopPropagation()
+                    if (!moved.current) setHover(idx)
                   }}
                 >
                   {/* pulse + location dot */}
