@@ -158,6 +158,10 @@ export function VisitorMapClient({
         </defs>
 
         <g clipPath="url(#ebMapClip)">
+          {/* sea — fills the whole frame so pins over water still read as
+              "on the map" rather than floating in the card's white padding. */}
+          <rect x={0} y={0} width={width} height={height} fill="var(--eb-map-sea, #cddff2)" />
+
           {/* land — scales/pans as one layer */}
           <g transform={`translate(${t.x}, ${t.y}) scale(${t.k})`}>
             {countries.map((d, i) => (

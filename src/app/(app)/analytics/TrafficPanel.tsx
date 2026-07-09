@@ -63,7 +63,13 @@ export function TrafficPanel({ data }: { data: TrafficData }) {
           {/* Supply the admin theme vars the map uses for land/borders. */}
           <div
             className="overflow-hidden rounded-xl"
-            style={{ ['--theme-elevation-200' as string]: '#e2e8f0', ['--theme-elevation-50' as string]: '#f1f5f9' }}
+            style={{
+              // Land near-white, borders soft, sea a light blue — so the map
+              // reads as land-on-sea and pins never look "off the map".
+              ['--theme-elevation-200' as string]: '#eef2f6',
+              ['--theme-elevation-50' as string]: '#dbe4ee',
+              ['--eb-map-sea' as string]: '#cddff2',
+            }}
           >
             <VisitorMap points={data.points} />
           </div>
