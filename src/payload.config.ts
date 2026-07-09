@@ -18,6 +18,7 @@ import { QuoteRequests } from './collections/QuoteRequests'
 import { Navigation } from './globals/Navigation'
 import { SiteSettings } from './globals/SiteSettings'
 import { QuotePricing } from './globals/QuotePricing'
+import { resendHttpAdapter } from './lib/email'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -38,6 +39,10 @@ export default buildConfig({
   },
   collections: [Pages, Areas, FAQs, Testimonials, GalleryItems, Awards, Media, QuoteRequests, Users],
   globals: [SiteSettings, Navigation, QuotePricing],
+  // Transactional email via Resend (custom HTTP adapter — see src/lib/email.ts).
+  // No-ops with a log when RESEND_API_KEY is unset. Powers admin/system mail
+  // (password resets) and the enquiry notification + confirmation emails.
+  email: resendHttpAdapter,
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

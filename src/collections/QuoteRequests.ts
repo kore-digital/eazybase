@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { anyone, isAdmin, isAdminFieldLevel, isAdminOrEditor } from '../access/roles'
 import { PROPERTY_TYPES, TIMELINES } from '../components/quote/pricing'
+import { FROM_CUSTOMER, FROM_TEAM, customerConfirmEmail, leadNotifyTo, teamLeadEmail } from '../lib/email'
 
 export const QuoteRequests: CollectionConfig = {
   slug: 'quote-requests',
@@ -19,56 +20,49 @@ export const QuoteRequests: CollectionConfig = {
   },
   hooks: {
     afterChange: [
-      async ({ doc, operation }) => {
+      async ({ doc, operation, req }) => {
         if (operation !== 'create') return
 
-        // Always log the lead summary — the reliable audit trail either way.
-        console.log(
-          `[quote-requests] New ${doc.type ?? 'full'} quote request from ` +
+        // Audit trail (always).
+        req.payload.logger.info(
+          `[quote-requests] New ${doc.type ?? 'full'} enquiry from ` +
             `${doc.firstName ?? ''} ${doc.lastName ?? ''} <${doc.email ?? 'no email'}> ` +
             `(postcode ${doc.postcode ?? '—'}).`,
         )
 
-        // Lead notification email via the Resend HTTP API (plain fetch — no
-        // SDK/SMTP dependency). The client must set RESEND_API_KEY (and
-        // optionally LEAD_NOTIFY_EMAIL) on deploy — see .env.example. Without
-        // a key we only log. Never blocks or fails the submission.
-        const apiKey = process.env.RESEND_API_KEY
-        if (!apiKey) return
+        // Email is best-effort — never block or fail the submission. The adapter
+        // (src/lib/email.ts) no-ops with a log when RESEND_API_KEY is unset.
+
+        // 1) Notify the team; replies go straight back to the customer.
         try {
-          const to = process.env.LEAD_NOTIFY_EMAIL || 'info@eazybase.co.uk'
-          const est = doc.estimator ?? {}
-          const lines = [
-            `Type: ${doc.type ?? 'full'}`,
-            `Name: ${doc.firstName ?? ''} ${doc.lastName ?? ''}`,
-            `Email: ${doc.email ?? '—'}`,
-            `Phone: ${doc.phone ?? '—'}`,
-            `Postcode: ${doc.postcode ?? '—'}`,
-            doc.addressLine1 ? `Address: ${doc.addressLine1}${doc.town ? `, ${doc.town}` : ''}` : '',
-            doc.message ? `Message: ${doc.message}` : '',
-            est.extensionType ? `Extension: ${est.extensionType}` : '',
-            est.widthM ? `Size: ${est.widthM}m × ${est.depthM}m` : '',
-            est.estimateLow ? `Estimate: £${est.estimateLow}–£${est.estimateHigh}` : '',
-            est.surveyRequired
-              ? `Survey fee: £${est.surveyFee ?? 0} (${est.distanceMiles ? `${Math.round(est.distanceMiles)} mi` : 'beyond radius'})`
-              : '',
-          ].filter(Boolean)
-          const res = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              // Placeholder sender — swap for a verified eazybase.co.uk address in Resend.
-              from: 'EazyBase Leads <onboarding@resend.dev>',
-              to: [to],
-              subject: `New ${doc.type ?? 'full'} quote request — ${doc.firstName ?? ''} ${doc.lastName ?? ''}`,
-              text: lines.join('\n'),
-            }),
+          const team = teamLeadEmail(doc)
+          await req.payload.sendEmail({
+            to: leadNotifyTo(),
+            from: FROM_TEAM,
+            replyTo: doc.email || undefined,
+            subject: team.subject,
+            html: team.html,
+            text: team.text,
           })
-          if (!res.ok) {
-            console.error(`[quote-requests] lead email failed: ${res.status} ${await res.text()}`)
-          }
         } catch (err) {
-          console.error('[quote-requests] lead email errored:', err)
+          req.payload.logger.error(`[quote-requests] team email failed: ${String(err)}`)
+        }
+
+        // 2) Confirm to the customer; replies go to the team.
+        if (doc.email) {
+          try {
+            const conf = customerConfirmEmail(doc)
+            await req.payload.sendEmail({
+              to: doc.email,
+              from: FROM_CUSTOMER,
+              replyTo: leadNotifyTo(),
+              subject: conf.subject,
+              html: conf.html,
+              text: conf.text,
+            })
+          } catch (err) {
+            req.payload.logger.error(`[quote-requests] confirmation email failed: ${String(err)}`)
+          }
         }
       },
     ],
