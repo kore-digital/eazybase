@@ -1,24 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { geoMercator, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
-import worldTopo from 'world-atlas/countries-110m.json'
+// 50m (vs 110m) gives a clean UK coastline at this zoom. Parsed server-side
+// only — it never ships to the client bundle.
+import worldTopo from 'world-atlas/countries-50m.json'
 
 import { VisitorMapClient, type MapPoint } from './VisitorMapClient'
 
 /**
- * Full world map (all continents) with visitor pins. The geometry is computed
- * server-side (d3-geo + world-atlas never ship to the client); a thin client
- * layer adds the pulse + hover tooltip. The projection always shows the whole
- * world — pins land wherever the cities are.
+ * UK-focused map with visitor pins. Geometry is computed server-side (d3-geo +
+ * world-atlas never ship to the client); a thin client layer adds the pulse,
+ * hover tooltip and pinch/zoom. The default view frames the British Isles (with
+ * Ireland + a sliver of NW Europe for context) so UK towns — which would be
+ * sub-pixel on a world map — sit far enough apart to read. Pinch to zoom in
+ * further; visitors outside the frame still appear in the "top cities" list.
  */
 export type VisitorPoint = { name: string; lat: number; lng: number; count: number }
 
-const W = 900
-const H = 560
-// World minus most of Antarctica / empty polar caps — gives the familiar flat map.
-const WORLD_BOX = {
+const W = 700
+const H = 760
+// British Isles + margin: lon [-11, 4], lat [49.5, 61].
+const UK_BOX = {
   type: 'Polygon',
-  coordinates: [[[-180, -56], [180, -56], [180, 80], [-180, 80], [-180, -56]]],
+  coordinates: [[[-11, 49.5], [4, 49.5], [4, 61], [-11, 61], [-11, 49.5]]],
 } as any
 
 export function VisitorMap({ points }: { points: VisitorPoint[] }) {
@@ -30,8 +34,15 @@ export function VisitorMap({ points }: { points: VisitorPoint[] }) {
       [8, 8],
       [W - 8, H - 8],
     ],
-    WORLD_BOX,
+    UK_BOX,
   )
+  // Clip geometry to the frame so far-off countries don't emit huge off-canvas
+  // path strings into the server-rendered HTML. (Zoom only goes inward from
+  // here, so nothing beyond the frame is ever revealed.)
+  projection.clipExtent([
+    [0, 0],
+    [W, H],
+  ])
   const path = geoPath(projection)
   const countries: string[] = world.features.map((f: any) => path(f) ?? '').filter(Boolean)
 

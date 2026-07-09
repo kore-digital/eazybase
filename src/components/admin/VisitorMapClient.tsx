@@ -16,7 +16,10 @@ const CSS = `
 `
 
 const MIN_K = 1
-const MAX_K = 14
+// High cap so tightly-clustered towns (e.g. UK cities ~30km apart, sub-pixel on
+// a world map at 1x) can be zoomed apart until their pins separate.
+const MAX_K = 80
+const BTN_STEP = 2
 
 type Transform = { k: number; x: number; y: number }
 
@@ -238,8 +241,8 @@ export function VisitorMapClient({
 
       {/* Zoom controls */}
       <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <ZoomBtn label="Zoom in" onTap={() => zoomAt(width / 2, height / 2, 1.6)}>+</ZoomBtn>
-        <ZoomBtn label="Zoom out" onTap={() => zoomAt(width / 2, height / 2, 1 / 1.6)}>−</ZoomBtn>
+        <ZoomBtn label="Zoom in" onTap={() => zoomAt(width / 2, height / 2, BTN_STEP)}>+</ZoomBtn>
+        <ZoomBtn label="Zoom out" onTap={() => zoomAt(width / 2, height / 2, 1 / BTN_STEP)}>−</ZoomBtn>
         {t.k > 1 ? (
           <ZoomBtn label="Reset zoom" onTap={reset} small>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
