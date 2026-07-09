@@ -162,13 +162,19 @@ export async function getAnalyticsData(range: DateRange): Promise<AnalyticsData>
       { label: 'Quote page', n: num(clickRow[0]?.[2]) },
       { label: 'Instant quote', n: num(clickRow[0]?.[3]) },
     ],
-    cities: locations.map((r) => [String(r[0] ?? ''), num(r[3])] as [string, number]),
-    points: locations.map((r) => ({
-      name: String(r[0] ?? ''),
-      lat: num(r[1]),
-      lng: num(r[2]),
-      count: num(r[3]),
-    })),
+    // Drop rows with no city name (PostHog returns blanks for un-geolocated
+    // hits) so they don't show as an empty label / nameless pin.
+    cities: locations
+      .filter((r) => String(r[0] ?? '').trim() !== '')
+      .map((r) => [String(r[0]).trim(), num(r[3])] as [string, number]),
+    points: locations
+      .filter((r) => String(r[0] ?? '').trim() !== '')
+      .map((r) => ({
+        name: String(r[0]).trim(),
+        lat: num(r[1]),
+        lng: num(r[2]),
+        count: num(r[3]),
+      })),
   }
 
   const quotes = quotesResult.docs as unknown as LeadRow[]
