@@ -167,8 +167,9 @@ export function PromoModal() {
         className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm"
       />
 
-      {/* confetti sits above the backdrop, behind the card */}
-      <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+      {/* confetti rains over the front of the card (pointer-events-none, so the
+          card stays fully clickable underneath) */}
+      <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 z-20 h-full w-full" />
 
       {/* card */}
       <div
