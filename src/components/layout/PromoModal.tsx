@@ -162,7 +162,7 @@ export function PromoModal() {
 
       {/* card */}
       <div
-        className="relative z-10 w-full max-w-[440px] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="relative z-10 max-h-[92dvh] w-full max-w-[440px] overflow-y-auto overflow-x-hidden rounded-3xl bg-white shadow-2xl"
         style={{ animation: 'ebPromoPop 0.45s cubic-bezier(0.16,1,0.3,1) both' }}
       >
         {/* close */}
