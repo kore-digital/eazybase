@@ -265,12 +265,11 @@ export function PromoModal() {
 }
 
 /**
- * Floating "claim your free SkyPod" button for the instant-quote page. Tapping
- * it opens the offer modal (which shoots the confetti). Only shown while the
- * offer is live.
+ * Inline "claim your free SkyPod" banner for the instant-quote page. Sits in
+ * the page flow (not floating); tapping it opens the offer modal (which shoots
+ * the confetti). Only shown while the offer is live.
  */
-export function PromoFab() {
-  const pathname = usePathname()
+export function PromoBanner() {
   const [live, setLive] = useState(false)
 
   useEffect(() => {
@@ -278,7 +277,6 @@ export function PromoFab() {
   }, [])
 
   if (!live) return null
-  if (!pathname?.startsWith('/instant-quote')) return null
 
   return (
     <button
@@ -286,26 +284,31 @@ export function PromoFab() {
       onClick={() => window.dispatchEvent(new CustomEvent(PROMO_OPEN_EVENT))}
       data-eb-chrome
       aria-label="Claim your free SkyPod offer"
-      className="fixed bottom-24 left-4 z-40 flex items-center gap-2 rounded-full bg-brand-700 py-3 pl-4 pr-5 font-display text-[13px] font-extrabold text-white shadow-xl shadow-brand-900/30 transition-transform hover:scale-105 active:scale-95 sm:bottom-6"
-      style={{ animation: 'ebFabPop 0.4s ease both, ebFabPulse 2.4s ease-in-out 0.6s infinite' }}
+      className="group mx-auto mb-8 flex w-full max-w-2xl items-center gap-3.5 rounded-2xl bg-brand-700 p-4 text-left shadow-lg shadow-brand-900/20 transition-colors hover:bg-brand-800 sm:gap-4"
     >
-      <style>{FAB_CSS}</style>
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[15px]" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 text-white" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="8" width="18" height="4" rx="1" />
           <path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
           <path d="M12 8S10.5 3 8 3a2.5 2.5 0 0 0 0 5M12 8s1.5-5 4-5a2.5 2.5 0 0 1 0 5" />
         </svg>
       </span>
-      Claim free SkyPod
+      <span className="min-w-0 flex-1">
+        <span className="block font-display text-[14px] font-extrabold leading-tight text-white sm:text-[15px]">
+          Booking in July or August? Claim your FREE SkyPod
+        </span>
+        <span className="mt-0.5 block text-[12px] leading-snug text-white/85 sm:text-[12.5px]">
+          A free roof skylight with every qualifying order — tap to see the offer
+        </span>
+      </span>
+      <span className="shrink-0 text-white transition-transform group-hover:translate-x-0.5" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </span>
     </button>
   )
 }
-
-const FAB_CSS = `
-@keyframes ebFabPop { from { opacity: 0; transform: translateY(12px) scale(0.9) } to { opacity: 1; transform: translateY(0) scale(1) } }
-@keyframes ebFabPulse { 0%,100% { box-shadow: 0 10px 25px rgba(67,88,22,0.30) } 50% { box-shadow: 0 10px 32px rgba(150,193,31,0.65) } }
-`
 
 const PROMO_CSS = `
 @keyframes ebPromoFade { from { opacity: 0 } to { opacity: 1 } }

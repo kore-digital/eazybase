@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { RichText } from '@payloadcms/richtext-lexical/react'
 
+import { PromoBanner } from '@/components/layout/PromoModal'
 import { InstantQuoteWizard } from '@/components/quote/InstantQuoteWizard'
 import { resolveQuotePricing } from '@/components/quote/pricing'
 import { CTABand } from '@/components/ui/CTABand'
@@ -71,6 +72,9 @@ export default async function InstantQuotePage() {
       {/* The estimator */}
       <section className="bg-white py-14 sm:py-20">
         <div className="eb-container">
+          {/* Launch-offer banner → opens the SkyPod modal (client component). */}
+          <PromoBanner />
+
           {intro && page && 'content' in intro && intro.content ? (
             <Reveal>
               <div
