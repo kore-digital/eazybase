@@ -76,5 +76,15 @@ export const SiteSettings: GlobalConfig = {
           'The 4–6 digit PIN that unlocks the EazyBase Analytics phone app (eazybase-kohl.vercel.app/analytics). Change it any time — it takes effect immediately.',
       },
     },
+    {
+      name: 'promoEnabled',
+      type: 'checkbox',
+      label: 'Show launch-offer pop-up',
+      defaultValue: true,
+      admin: {
+        description:
+          'Turn the free-SkyPod launch offer on or off (the pop-up and the instant-quote banner). Untick to hide it site-wide immediately.',
+      },
+    },
   ],
 }

@@ -85,7 +85,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
           />
           <StickyMobileCTA />
           <WhatsAppFloat />
-          <PromoModal />
+          <PromoModal enabled={settings?.promoEnabled !== false} />
         </SiteContactProvider>
         <EditorOverlay />
       </body>

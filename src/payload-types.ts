@@ -1298,6 +1298,10 @@ export interface SiteSetting {
    * The 4–6 digit PIN that unlocks the EazyBase Analytics phone app (eazybase-kohl.vercel.app/analytics). Change it any time — it takes effect immediately.
    */
   analyticsPin?: string | null;
+  /**
+   * Turn the free-SkyPod launch offer on or off (the pop-up and the instant-quote banner). Untick to hide it site-wide immediately.
+   */
+  promoEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1422,6 +1426,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         band2Sub?: T;
       };
   analyticsPin?: T;
+  promoEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

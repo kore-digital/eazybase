@@ -7,7 +7,7 @@ import { resolveQuotePricing } from '@/components/quote/pricing'
 import { CTABand } from '@/components/ui/CTABand'
 import { Reveal } from '@/components/ui/Reveal'
 import { SectionHeading } from '@/components/ui/SectionHeading'
-import { getPage, getQuotePricing } from '@/lib/data'
+import { getPage, getQuotePricing, getSiteSettings } from '@/lib/data'
 
 /**
  * /instant-quote — a brand-new quick estimator (the old URL just duplicated
@@ -30,8 +30,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function InstantQuotePage() {
-  const [page, pricingGlobal] = await Promise.all([getPage('instant-quote'), getQuotePricing()])
+  const [page, pricingGlobal, settings] = await Promise.all([
+    getPage('instant-quote'),
+    getQuotePricing(),
+    getSiteSettings(),
+  ])
   const pricing = resolveQuotePricing(pricingGlobal)
+  const promoOn = settings?.promoEnabled !== false
 
   const sections = page?.sections ?? []
   const introIndex = sections.findIndex((s) => s.blockType === 'richText')
@@ -73,7 +78,7 @@ export default async function InstantQuotePage() {
       <section className="bg-white py-14 sm:py-20">
         <div className="eb-container">
           {/* Launch-offer banner → opens the SkyPod modal (client component). */}
-          <PromoBanner />
+          {promoOn ? <PromoBanner /> : null}
 
           {intro && page && 'content' in intro && intro.content ? (
             <Reveal>

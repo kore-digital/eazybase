@@ -19,18 +19,21 @@ const LAST_KEY = 'eb_promo_skypod_last' // timestamp last shown
 const DONE_KEY = 'eb_promo_skypod_done' // claimed → never again
 const COOLDOWN = 24 * 60 * 60 * 1000 // show at most once per 24h
 
-const HIDE_ON = ['/instant-quote', '/get-a-quote']
+// Auto-pop suppressed on the full-form page only; instant-quote gets the
+// pop-up too (with the inline banner remaining after dismissal to reopen it).
+const HIDE_ON = ['/get-a-quote']
 
-/** Fire this event to open the offer modal on demand (e.g. the floating button). */
+/** Fire this event to open the offer modal on demand (e.g. the inline banner). */
 export const PROMO_OPEN_EVENT = 'eb:open-promo'
 
-export function PromoModal() {
+export function PromoModal({ enabled = true }: { enabled?: boolean }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
-  // Decide whether to show (client-only; respects date + storage + route).
+  // Decide whether to show (client-only; respects toggle + date + storage + route).
   useEffect(() => {
+    if (!enabled) return
     if (HIDE_ON.some((p) => pathname?.startsWith(p))) return
     if (new Date() >= OFFER_ENDS) return
     try {
@@ -49,14 +52,15 @@ export function PromoModal() {
       }
     }, 1100)
     return () => clearTimeout(t)
-  }, [pathname])
+  }, [pathname, enabled])
 
-  // Open on demand (floating button etc.) — bypasses the cooldown/date guards.
+  // Open on demand (inline banner) — bypasses the cooldown/date guards.
   useEffect(() => {
+    if (!enabled) return
     const onOpen = () => setOpen(true)
     window.addEventListener(PROMO_OPEN_EVENT, onOpen)
     return () => window.removeEventListener(PROMO_OPEN_EVENT, onOpen)
-  }, [])
+  }, [enabled])
 
   const close = useCallback((remember: 'cooldown' | 'forever') => {
     setOpen(false)
