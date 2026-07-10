@@ -9,14 +9,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * booking in July & August. Confetti burst on open, a SkyPod illustration, and
  * a "Claim my reward" CTA to the instant-quote page.
  *
- * Shows once per session (sessionStorage); a claim/dismiss is remembered for
- * good (localStorage). Auto-retires after the offer ends so it never goes
- * stale, and never appears on the quote pages it points to.
+ * Shows at most once every 24h (localStorage timestamp); once a visitor clicks
+ * "Claim" it never shows again. Auto-retires after the offer ends so it never
+ * goes stale, and never appears on the quote pages it points to.
  */
 
 const OFFER_ENDS = new Date('2026-09-01T00:00:00') // show through 31 Aug
-const SEEN_KEY = 'eb_promo_skypod_seen' // this session
-const DONE_KEY = 'eb_promo_skypod_done' // ever
+const LAST_KEY = 'eb_promo_skypod_last' // timestamp last shown
+const DONE_KEY = 'eb_promo_skypod_done' // claimed → never again
+const COOLDOWN = 24 * 60 * 60 * 1000 // show at most once per 24h
 
 const HIDE_ON = ['/instant-quote', '/get-a-quote']
 
@@ -30,18 +31,27 @@ export function PromoModal() {
     if (HIDE_ON.some((p) => pathname?.startsWith(p))) return
     if (new Date() >= OFFER_ENDS) return
     try {
-      if (localStorage.getItem(DONE_KEY) || sessionStorage.getItem(SEEN_KEY)) return
+      if (localStorage.getItem(DONE_KEY)) return
+      const last = Number(localStorage.getItem(LAST_KEY) || 0)
+      if (Date.now() - last < COOLDOWN) return
     } catch {
       /* storage blocked — still show once */
     }
-    const t = setTimeout(() => setOpen(true), 1100)
+    const t = setTimeout(() => {
+      setOpen(true)
+      try {
+        localStorage.setItem(LAST_KEY, String(Date.now()))
+      } catch {
+        /* ignore */
+      }
+    }, 1100)
     return () => clearTimeout(t)
   }, [pathname])
 
-  const close = useCallback((remember: 'session' | 'forever') => {
+  const close = useCallback((remember: 'cooldown' | 'forever') => {
     setOpen(false)
     try {
-      sessionStorage.setItem(SEEN_KEY, '1')
+      localStorage.setItem(LAST_KEY, String(Date.now()))
       if (remember === 'forever') localStorage.setItem(DONE_KEY, '1')
     } catch {
       /* ignore */
@@ -53,7 +63,7 @@ export function PromoModal() {
     if (!open) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close('session')
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close('cooldown')
     window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = prev
@@ -153,7 +163,7 @@ export function PromoModal() {
       <button
         type="button"
         aria-label="Close offer"
-        onClick={() => close('session')}
+        onClick={() => close('cooldown')}
         className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm"
       />
 
@@ -169,7 +179,7 @@ export function PromoModal() {
         <button
           type="button"
           aria-label="Close"
-          onClick={() => close('session')}
+          onClick={() => close('cooldown')}
           className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-ink-600 shadow-sm backdrop-blur transition-colors hover:bg-white hover:text-ink-900"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
@@ -182,7 +192,7 @@ export function PromoModal() {
 
         <div className="px-6 pb-6 pt-5 text-center sm:px-7">
           <span className="inline-block rounded-full bg-brand-100 px-3 py-1 font-display text-[11px] font-bold uppercase tracking-wider text-brand-800">
-            🎉 New website launch offer
+            New website launch offer
           </span>
           <h2 className="mt-3 font-display text-[26px] font-extrabold leading-tight text-ink-950 sm:text-[28px]">
             A <span className="text-brand-600">FREE SkyPod</span> with every booking
@@ -191,14 +201,16 @@ export function PromoModal() {
             We&apos;re celebrating our shiny new website — so book your extension in{' '}
             <strong className="text-ink-900">July or August</strong> and we&apos;ll drop in a{' '}
             <strong className="text-ink-900">SkyPod roof skylight, absolutely free.</strong> Flood your new space
-            with natural light, on us. ☀️
+            with natural light, on us.
           </p>
 
           <ul className="mx-auto mt-4 grid max-w-[300px] gap-1.5 text-left text-[13.5px] text-ink-700">
             {['Modern, stylish glass design', 'Brighter, warmer living space', 'Adds real value to your home', 'Yours FREE with every qualifying order'].map(
               (b) => (
                 <li key={b} className="flex items-start gap-2">
-                  <span className="mt-0.5 text-brand-600">✓</span>
+                  <svg className="mt-0.5 shrink-0 text-brand-600" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
                   <span>{b}</span>
                 </li>
               ),
@@ -208,17 +220,17 @@ export function PromoModal() {
           <Link
             href="/instant-quote"
             onClick={() => close('forever')}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-6 py-3.5 font-display text-[15px] font-extrabold text-ink-950 shadow-lg shadow-brand-500/30 transition-transform hover:scale-[1.02] active:scale-95"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3.5 font-display text-[15px] font-extrabold text-white shadow-lg shadow-brand-700/30 transition-colors hover:bg-brand-800 active:scale-95"
           >
-            🎁 Claim my reward
+            Claim My Reward
           </Link>
 
           <p className="mt-3 text-[12px] font-semibold text-ink-400">
-            ⏳ Hurry — offer ends 31st August. Don&apos;t miss out!
+            Hurry — offer ends 31st August. Don&apos;t miss out!
           </p>
           <button
             type="button"
-            onClick={() => close('session')}
+            onClick={() => close('cooldown')}
             className="mt-1 text-[12px] font-medium text-ink-400 underline-offset-2 hover:underline"
           >
             Maybe later
