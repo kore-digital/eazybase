@@ -6,7 +6,7 @@ import { PostHogInit } from '@/components/analytics/PostHogInit'
 import { EditorOverlay } from '@/components/editor/EditorOverlay'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
-import { PromoModal } from '@/components/layout/PromoModal'
+import { PromoFab, PromoModal } from '@/components/layout/PromoModal'
 import { SiteContactProvider } from '@/components/layout/SiteContactProvider'
 import { SmoothScroll } from '@/components/layout/SmoothScroll'
 import { StickyMobileCTA } from '@/components/layout/StickyMobileCTA'
@@ -86,6 +86,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
           <StickyMobileCTA />
           <WhatsAppFloat />
           <PromoModal />
+          <PromoFab />
         </SiteContactProvider>
         <EditorOverlay />
       </body>

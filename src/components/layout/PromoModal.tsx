@@ -21,6 +21,9 @@ const COOLDOWN = 24 * 60 * 60 * 1000 // show at most once per 24h
 
 const HIDE_ON = ['/instant-quote', '/get-a-quote']
 
+/** Fire this event to open the offer modal on demand (e.g. the floating button). */
+export const PROMO_OPEN_EVENT = 'eb:open-promo'
+
 export function PromoModal() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -47,6 +50,13 @@ export function PromoModal() {
     }, 1100)
     return () => clearTimeout(t)
   }, [pathname])
+
+  // Open on demand (floating button etc.) — bypasses the cooldown/date guards.
+  useEffect(() => {
+    const onOpen = () => setOpen(true)
+    window.addEventListener(PROMO_OPEN_EVENT, onOpen)
+    return () => window.removeEventListener(PROMO_OPEN_EVENT, onOpen)
+  }, [])
 
   const close = useCallback((remember: 'cooldown' | 'forever') => {
     setOpen(false)
@@ -188,8 +198,20 @@ export function PromoModal() {
           </svg>
         </button>
 
-        {/* SkyPod illustration banner */}
-        <SkyPodArt />
+        {/* Photo banner with FREE badge */}
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/skypod-offer.jpg"
+            alt="A bright kitchen extension flooded with light from a SkyPod roof skylight"
+            className="h-[188px] w-full object-cover object-[center_32%] sm:h-[208px]"
+          />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent" />
+          <div className="absolute left-4 top-4 flex h-[70px] w-[70px] rotate-[-8deg] flex-col items-center justify-center rounded-full bg-brand-500 text-center shadow-lg ring-2 ring-white/85">
+            <span className="font-display text-[16px] font-extrabold leading-none text-ink-950">FREE</span>
+            <span className="mt-0.5 font-display text-[8px] font-bold tracking-[0.12em] text-ink-950/80">SKYPOD</span>
+          </div>
+        </div>
 
         <div className="px-6 pb-6 pt-5 text-center sm:px-7">
           <span className="inline-block rounded-full bg-brand-100 px-3 py-1 font-display text-[11px] font-bold uppercase tracking-wider text-brand-800">
@@ -242,75 +264,48 @@ export function PromoModal() {
   )
 }
 
-/** On-brand vector SkyPod / roof-lantern illustration (self-contained). */
-function SkyPodArt() {
+/**
+ * Floating "claim your free SkyPod" button for the instant-quote page. Tapping
+ * it opens the offer modal (which shoots the confetti). Only shown while the
+ * offer is live.
+ */
+export function PromoFab() {
+  const pathname = usePathname()
+  const [live, setLive] = useState(false)
+
+  useEffect(() => {
+    setLive(new Date() < OFFER_ENDS)
+  }, [])
+
+  if (!live) return null
+  if (!pathname?.startsWith('/instant-quote')) return null
+
   return (
-    <div className="relative">
-      <svg viewBox="0 0 440 220" className="block h-auto w-full" role="img" aria-label="SkyPod roof skylight">
-        <defs>
-          <linearGradient id="ebSky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#bfe3f7" />
-            <stop offset="1" stopColor="#eaf6fd" />
-          </linearGradient>
-          <linearGradient id="ebGlass" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#dff1fb" />
-            <stop offset="1" stopColor="#a9d8f0" />
-          </linearGradient>
-          <radialGradient id="ebSun" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#ffe9a8" />
-            <stop offset="1" stopColor="#ffd54a" />
-          </radialGradient>
-        </defs>
-
-        {/* sky */}
-        <rect width="440" height="220" fill="url(#ebSky)" />
-
-        {/* sun + rays */}
-        <g transform="translate(360, 58)">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <rect key={i} x="-1.5" y="-40" width="3" height="14" rx="1.5" fill="#ffd54a" opacity="0.75" transform={`rotate(${i * 30})`} />
-          ))}
-          <circle r="26" fill="url(#ebSun)" />
-        </g>
-
-        {/* soft light beams onto the pod */}
-        <path d="M150 40 L120 210 L250 210 L210 40 Z" fill="#ffffff" opacity="0.35" />
-
-        {/* roof base */}
-        <rect x="0" y="180" width="440" height="40" fill="#e8eae4" />
-        <rect x="0" y="176" width="440" height="8" fill="#d3d6cd" />
-
-        {/* roof lantern / SkyPod */}
-        <g transform="translate(220, 176)">
-          {/* glass pyramid */}
-          <polygon points="-70,0 70,0 40,-70 -40,-70" fill="url(#ebGlass)" stroke="#ffffff" strokeWidth="5" strokeLinejoin="round" />
-          {/* glazing bars */}
-          <line x1="0" y1="0" x2="0" y2="-70" stroke="#ffffff" strokeWidth="4" />
-          <line x1="-35" y1="0" x2="-20" y2="-70" stroke="#ffffff" strokeWidth="4" />
-          <line x1="35" y1="0" x2="20" y2="-70" stroke="#ffffff" strokeWidth="4" />
-          <line x1="-58" y1="-24" x2="58" y2="-24" stroke="#ffffff" strokeWidth="4" />
-          {/* highlight */}
-          <polygon points="-40,-70 -10,-70 -46,-4 -66,-4" fill="#ffffff" opacity="0.35" />
-          {/* base frame */}
-          <rect x="-78" y="-2" width="156" height="14" rx="4" fill="#ffffff" />
-          <rect x="-78" y="8" width="156" height="6" rx="3" fill="#d3d6cd" />
-        </g>
-
-        {/* FREE badge */}
-        <g transform="translate(70, 60)">
-          <circle r="34" fill="#96c11f" />
-          <circle r="34" fill="none" stroke="#ffffff" strokeWidth="3" strokeDasharray="3 5" />
-          <text textAnchor="middle" y="-2" fontFamily="Montserrat, sans-serif" fontSize="17" fontWeight="800" fill="#1e1f1d">
-            FREE
-          </text>
-          <text textAnchor="middle" y="14" fontFamily="Montserrat, sans-serif" fontSize="8.5" fontWeight="700" fill="#1e1f1d" opacity="0.8">
-            SKYPOD
-          </text>
-        </g>
-      </svg>
-    </div>
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new CustomEvent(PROMO_OPEN_EVENT))}
+      data-eb-chrome
+      aria-label="Claim your free SkyPod offer"
+      className="fixed bottom-24 left-4 z-40 flex items-center gap-2 rounded-full bg-brand-700 py-3 pl-4 pr-5 font-display text-[13px] font-extrabold text-white shadow-xl shadow-brand-900/30 transition-transform hover:scale-105 active:scale-95 sm:bottom-6"
+      style={{ animation: 'ebFabPop 0.4s ease both, ebFabPulse 2.4s ease-in-out 0.6s infinite' }}
+    >
+      <style>{FAB_CSS}</style>
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[15px]" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="8" width="18" height="4" rx="1" />
+          <path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+          <path d="M12 8S10.5 3 8 3a2.5 2.5 0 0 0 0 5M12 8s1.5-5 4-5a2.5 2.5 0 0 1 0 5" />
+        </svg>
+      </span>
+      Claim free SkyPod
+    </button>
   )
 }
+
+const FAB_CSS = `
+@keyframes ebFabPop { from { opacity: 0; transform: translateY(12px) scale(0.9) } to { opacity: 1; transform: translateY(0) scale(1) } }
+@keyframes ebFabPulse { 0%,100% { box-shadow: 0 10px 25px rgba(67,88,22,0.30) } 50% { box-shadow: 0 10px 32px rgba(150,193,31,0.65) } }
+`
 
 const PROMO_CSS = `
 @keyframes ebPromoFade { from { opacity: 0 } to { opacity: 1 } }
