@@ -1,30 +1,25 @@
 import type { Metadata } from 'next'
 
 import { PromoBanner } from '@/components/layout/PromoModal'
-import { QuoteAssistant } from '@/components/quote/assistant/QuoteAssistant'
+import { QuoteModes } from '@/components/quote/QuoteModes'
 import { resolveQuotePricing } from '@/components/quote/pricing'
 import { Reveal } from '@/components/ui/Reveal'
 import { SectionHeading } from '@/components/ui/SectionHeading'
-import { SITE } from '@/lib/site'
 import { getPage, getQuotePricing, getSiteSettings } from '@/lib/data'
 
 /**
- * /get-a-quote — the conversational Quote Assistant ("Eazy"). A chat-led
- * capture that gathers the same details as the /instant-quote wizard and
- * shows an indicative range, then hands the lead to the team. The section
- * carries data-quote-form so the sticky mobile CTA bar hides while it's in view.
+ * /get-a-quote — the single quote page, two modes. A toggle swaps between the
+ * Instant estimator (a price in ~60s) and the Eazy chat assistant, both on the
+ * same pricing model. Deep-link a mode with ?mode=chat|instant. The old
+ * /instant-quote URL 301s here (see next.config.ts). data-quote-form hides the
+ * sticky mobile CTA while the tool is in view.
  */
 
 const FALLBACK_TITLE = 'Get a Quote | EazyBase Modular Home Extensions'
 const FALLBACK_DESCRIPTION =
-  'Answer a few quick questions and get an indicative price in about 60 seconds — then our team confirms your fixed-price quote. No obligation, ever.'
+  'Get an indicative price in 60 seconds with our estimator, or chat it through with our team — then we confirm your fixed-price quote. No obligation, ever.'
 
-const BENEFITS = [
-  'No obligation, ever',
-  'Fixed price after survey',
-  'Response within hours',
-  'Finance options available',
-]
+const BENEFITS = ['No obligation, ever', 'Fixed price after survey', 'Response within hours', 'Finance options available']
 
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPage('get-a-quote')
@@ -35,7 +30,15 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function GetAQuotePage() {
+export default async function GetAQuotePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const sp = await searchParams
+  const modeParam = Array.isArray(sp.mode) ? sp.mode[0] : sp.mode
+  const initialMode = modeParam === 'chat' ? 'chat' : 'instant'
+
   const [page, pricingGlobal, settings] = await Promise.all([
     getPage('get-a-quote'),
     getQuotePricing(),
@@ -45,81 +48,62 @@ export default async function GetAQuotePage() {
   const promoOn = settings?.promoEnabled !== false
 
   return (
-    <section
-      data-quote-form
-      className="bg-ink-50 py-14 sm:py-20"
-      style={{
-        backgroundImage:
-          'radial-gradient(ellipse 60% 50% at 15% 0%, rgba(150,193,31,0.10), transparent 70%)',
-      }}
-    >
-      {promoOn ? (
-        <div className="eb-container mb-10">
-          <PromoBanner />
-        </div>
-      ) : null}
-      <div className="eb-container grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
-        {/* Left: pitch + trust */}
-        <Reveal>
-          <div>
+    <>
+      {/* Hero */}
+      <section className="bg-ink-950 py-16 sm:py-20">
+        <div className="eb-container">
+          <Reveal>
             <SectionHeading
               as="h1"
               align="left"
-              eyebrow={page?.heroEyebrow || 'Instant quote'}
+              onDark
+              eyebrow={page?.heroEyebrow || 'Free, no-obligation quote'}
               eyebrowEdit={page ? `pages:${page.id}:heroEyebrow` : undefined}
               lede={
                 page?.heroSub ? (
                   <span data-eb-edit={`pages:${page.id}:heroSub`}>{page.heroSub}</span>
                 ) : (
-                  'Answer a few quick questions and our team will prepare a personalised, fixed-price quote — no lengthy back-and-forth.'
+                  'A price in 60 seconds, or a friendly chat — your choice.'
                 )
               }
             >
               {page?.heroHeading ? (
                 <span data-eb-edit={`pages:${page.id}:heroHeading`}>{page.heroHeading}</span>
               ) : (
-                'Get your free, fixed-price quote'
+                'Get your quote, your way'
               )}
             </SectionHeading>
+          </Reveal>
+        </div>
+      </section>
 
-            <ul className="mt-8 space-y-3">
-              {BENEFITS.map((b) => (
-                <li key={b} className="flex items-center gap-3 text-ink-700">
-                  <span
-                    aria-hidden="true"
-                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-500"
-                  >
-                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-ink-950" fill="none">
-                      <path
-                        d="M3.5 8.5l3 3 6-7"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  <span className="font-medium">{b}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-8 flex items-center gap-3 rounded-xl border border-ink-100 bg-white/70 px-4 py-3">
-              <svg viewBox="0 0 24 24" className="h-8 w-8 shrink-0 text-brand-600" fill="currentColor" aria-hidden="true">
-                <path d="M12 2l2.4 5 5.6.5-4.2 3.7 1.3 5.5L12 19.3 6.9 22.2l1.3-5.5L4 13l5.6-.5L12 2z" />
-              </svg>
-              <p className="text-sm text-ink-600">
-                <strong className="font-semibold text-ink-900">{SITE.awardBody}</strong> — {SITE.award}
-              </p>
+      {/* The quote tool — toggle between instant estimate and chat */}
+      <section data-quote-form className="bg-white py-14 sm:py-20">
+        <div className="eb-container">
+          {promoOn ? (
+            <div className="mb-8">
+              <PromoBanner />
             </div>
-          </div>
-        </Reveal>
+          ) : null}
 
-        {/* Right: the assistant */}
-        <Reveal delay={0.12}>
-          <QuoteAssistant pricing={pricing} />
-        </Reveal>
-      </div>
-    </section>
+          <Reveal delay={0.08}>
+            <QuoteModes pricing={pricing} initialMode={initialMode} />
+          </Reveal>
+
+          <ul className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-2.5 text-sm text-ink-600">
+            {BENEFITS.map((b) => (
+              <li key={b} className="flex items-center gap-2">
+                <span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-500">
+                  <svg viewBox="0 0 16 16" className="h-3 w-3 text-ink-950" fill="none">
+                    <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className="font-medium">{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    </>
   )
 }

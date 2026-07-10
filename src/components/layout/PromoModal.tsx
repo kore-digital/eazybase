@@ -245,7 +245,7 @@ export function PromoModal({ enabled = true }: { enabled?: boolean }) {
           </ul>
 
           <Link
-            href="/instant-quote"
+            href="/get-a-quote"
             onClick={() => close('forever')}
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3.5 font-display text-[15px] font-extrabold text-white shadow-lg shadow-brand-700/30 transition-colors hover:bg-brand-800 active:scale-95"
           >

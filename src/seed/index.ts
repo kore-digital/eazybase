@@ -281,7 +281,6 @@ async function seedGlobals(payload: Payload) {
           { label: 'Areas We Serve', href: '/areas' },
           { label: 'FAQ', href: '/faq' },
           { label: 'Reviews & Social', href: '/social' },
-          { label: 'Instant Quote', href: '/instant-quote' },
           { label: 'Get a Quote', href: '/get-a-quote' },
         ],
       },

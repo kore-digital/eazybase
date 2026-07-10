@@ -14,22 +14,26 @@ const nextConfig: NextConfig = {
    * normalisation (trailingSlash: false) 308s `/foo/` → `/foo` before these
    * run, so each old slug only needs the non-trailing form here.
    *
-   * NOTE: `/instant-quote/` is deliberately NOT redirected — it is a real
-   * page in the rebuild. All other 1:1 slugs (/about-us/, /faq/, …) need no
-   * entry either; only the `{town}-modular-home-extensions` pattern moved.
+   * `/instant-quote` now 301s into the merged `/get-a-quote` (one page, two
+   * modes) so old links + bookmarks keep working. All other 1:1 slugs
+   * (/about-us/, /faq/, …) need no entry; only the
+   * `{town}-modular-home-extensions` pattern moved.
    */
   async redirects() {
-    return AREAS.flatMap((area) =>
-      area.oldSlug
-        ? [
-            {
-              source: `/${area.oldSlug}`,
-              destination: `/areas/${area.slug}`,
-              permanent: true,
-            },
-          ]
-        : [],
-    )
+    return [
+      { source: '/instant-quote', destination: '/get-a-quote', permanent: true },
+      ...AREAS.flatMap((area) =>
+        area.oldSlug
+          ? [
+              {
+                source: `/${area.oldSlug}`,
+                destination: `/areas/${area.slug}`,
+                permanent: true,
+              },
+            ]
+          : [],
+      ),
+    ]
   },
   images: {
     localPatterns: [

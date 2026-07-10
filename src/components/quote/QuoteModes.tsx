@@ -6,13 +6,16 @@ import { InstantQuoteWizard } from '@/components/quote/InstantQuoteWizard'
 import { QuoteAssistant } from '@/components/quote/assistant/QuoteAssistant'
 import type { QuotePricing } from '@/components/quote/pricing'
 
+export type QuoteMode = 'instant' | 'chat'
+
 /**
- * PREVIEW: the "merged" quote page — one page, two modes. A segmented toggle
- * swaps between the real Instant estimator and the real Eazy chat assistant,
- * both using the same live pricing model.
+ * The quote page — one page, two modes. A segmented toggle swaps between the
+ * Instant estimator and the Eazy chat assistant, both on the same live pricing
+ * model. `initialMode` lets a link deep-link straight into a mode
+ * (e.g. /get-a-quote?mode=chat).
  */
-export function QuoteModes({ pricing }: { pricing: QuotePricing }) {
-  const [mode, setMode] = useState<'instant' | 'chat'>('instant')
+export function QuoteModes({ pricing, initialMode = 'instant' }: { pricing: QuotePricing; initialMode?: QuoteMode }) {
+  const [mode, setMode] = useState<QuoteMode>(initialMode)
 
   return (
     <div>

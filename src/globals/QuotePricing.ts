@@ -15,7 +15,7 @@ export const QuotePricing: GlobalConfig = {
   admin: {
     group: 'Settings',
     description:
-      'Controls the /instant-quote estimator. Price = size only; extension type and finish do not change it.',
+      'Controls the Get-a-Quote estimator. Price = size only; extension type and finish do not change it.',
   },
   access: {
     read: () => true,

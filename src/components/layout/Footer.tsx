@@ -17,7 +17,6 @@ const QUICK_LINKS = [
   { label: 'FAQ', href: '/faq' },
   { label: 'Social', href: '/social' },
   { label: 'Get A Quote', href: '/get-a-quote' },
-  { label: 'Instant Quote', href: '/instant-quote' },
 ]
 
 type FooterProps = {

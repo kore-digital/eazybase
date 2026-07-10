@@ -118,10 +118,10 @@ export function Hero({
             <div className="mt-8 flex flex-wrap gap-4">
               <QuoteCTA href="/get-a-quote">Get a Quote</QuoteCTA>
               <Link
-                href="/instant-quote"
+                href="/get-a-quote?mode=chat"
                 className="eb-btn border-2 border-white text-white transition-colors hover:bg-white hover:text-ink-950"
               >
-                Instant Quote
+                Chat to us
               </Link>
             </div>
           </Reveal>

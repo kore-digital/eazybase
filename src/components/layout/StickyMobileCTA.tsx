@@ -74,7 +74,7 @@ export function StickyMobileCTA() {
           WhatsApp
         </a>
         <Link
-          href="/get-a-quote"
+          href="/get-a-quote?mode=chat"
           className="flex items-center justify-center gap-1.5 bg-ink-900 py-3.5 font-display text-xs font-semibold tracking-wide text-white uppercase"
         >
           Get A Quote
