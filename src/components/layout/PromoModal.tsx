@@ -314,6 +314,41 @@ export function PromoBanner() {
   )
 }
 
+/**
+ * Slim site-wide notification bar announcing the offer. Sits above the header
+ * (scrolls away as the sticky header pins). Tapping it opens the offer modal.
+ * Only shown while the offer is live and enabled.
+ */
+export function PromoTopBar({ enabled = true }: { enabled?: boolean }) {
+  const [live, setLive] = useState(false)
+
+  useEffect(() => {
+    setLive(enabled && new Date() < OFFER_ENDS)
+  }, [enabled])
+
+  if (!live) return null
+
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new CustomEvent(PROMO_OPEN_EVENT))}
+      data-eb-chrome
+      aria-label="Claim your free SkyPod offer"
+      className="flex w-full items-center justify-center gap-2.5 bg-brand-700 px-4 py-2 text-center text-white transition-colors hover:bg-brand-800"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
+        <rect x="3" y="8" width="18" height="4" rx="1" />
+        <path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+        <path d="M12 8S10.5 3 8 3a2.5 2.5 0 0 0 0 5M12 8s1.5-5 4-5a2.5 2.5 0 0 1 0 5" />
+      </svg>
+      <span className="text-[12px] font-semibold leading-tight sm:text-[13px]">
+        <span className="font-extrabold">FREE SkyPod</span> with every booking this July &amp; August
+      </span>
+      <span className="hidden shrink-0 text-[12px] font-bold underline underline-offset-2 sm:inline">Claim yours →</span>
+    </button>
+  )
+}
+
 const PROMO_CSS = `
 @keyframes ebPromoFade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes ebPromoPop { from { opacity: 0; transform: translateY(16px) scale(0.94) } to { opacity: 1; transform: translateY(0) scale(1) } }

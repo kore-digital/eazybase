@@ -6,7 +6,7 @@ import { PostHogInit } from '@/components/analytics/PostHogInit'
 import { EditorOverlay } from '@/components/editor/EditorOverlay'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
-import { PromoModal } from '@/components/layout/PromoModal'
+import { PromoModal, PromoTopBar } from '@/components/layout/PromoModal'
 import { SiteContactProvider } from '@/components/layout/SiteContactProvider'
 import { SmoothScroll } from '@/components/layout/SmoothScroll'
 import { StickyMobileCTA } from '@/components/layout/StickyMobileCTA'
@@ -72,6 +72,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         <SmoothScroll />
         <PostHogInit />
         <SiteContactProvider phone={settings?.phone} whatsappNumber={settings?.whatsappNumber}>
+          <PromoTopBar enabled={settings?.promoEnabled !== false} />
           <Header phone={settings?.phone} navItems={navigation?.mainNav} />
           <main>{children}</main>
           <Footer

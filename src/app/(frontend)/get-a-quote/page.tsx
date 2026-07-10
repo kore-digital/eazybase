@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 
+import { PromoBanner } from '@/components/layout/PromoModal'
 import { QuoteAssistant } from '@/components/quote/assistant/QuoteAssistant'
 import { resolveQuotePricing } from '@/components/quote/pricing'
 import { Reveal } from '@/components/ui/Reveal'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { SITE } from '@/lib/site'
-import { getPage, getQuotePricing } from '@/lib/data'
+import { getPage, getQuotePricing, getSiteSettings } from '@/lib/data'
 
 /**
  * /get-a-quote — the conversational Quote Assistant ("Eazy"). A chat-led
@@ -35,8 +36,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function GetAQuotePage() {
-  const [page, pricingGlobal] = await Promise.all([getPage('get-a-quote'), getQuotePricing()])
+  const [page, pricingGlobal, settings] = await Promise.all([
+    getPage('get-a-quote'),
+    getQuotePricing(),
+    getSiteSettings(),
+  ])
   const pricing = resolveQuotePricing(pricingGlobal)
+  const promoOn = settings?.promoEnabled !== false
 
   return (
     <section
@@ -47,6 +53,11 @@ export default async function GetAQuotePage() {
           'radial-gradient(ellipse 60% 50% at 15% 0%, rgba(150,193,31,0.10), transparent 70%)',
       }}
     >
+      {promoOn ? (
+        <div className="eb-container mb-10">
+          <PromoBanner />
+        </div>
+      ) : null}
       <div className="eb-container grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
         {/* Left: pitch + trust */}
         <Reveal>
