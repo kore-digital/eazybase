@@ -184,10 +184,29 @@ export function Footer({ phone, whatsappNumber, email, tagline, awardLine, socia
 
       {/* Bottom bar — extra mobile padding clears the StickyMobileCTA bar */}
       <div className="border-t border-ink-800 bg-ink-950">
-        <div className="eb-container pt-5 pb-[calc(1.25rem_+_3.5rem_+_env(safe-area-inset-bottom))] text-center text-xs text-ink-400 md:pb-5">
+        <div className="eb-container flex flex-col items-center gap-4 pt-5 pb-[calc(1.25rem_+_3.5rem_+_env(safe-area-inset-bottom))] text-center text-xs text-ink-400 sm:flex-row sm:justify-between md:pb-5">
           <p>
             © {year} {SITE.legalName}. All rights reserved.
           </p>
+
+          {/* Built by Kore Digital — reversed wordmark (white kore + amber cursor) */}
+          <a
+            href="https://www.koredigital.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Website designed and built by Kore Digital"
+            className="group inline-flex items-center gap-2.5 opacity-80 transition-opacity hover:opacity-100"
+          >
+            <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-400">Built by</span>
+            <span
+              aria-hidden="true"
+              className="inline-flex items-end leading-none"
+              style={{ fontFamily: 'var(--font-archivo-black), system-ui, sans-serif' }}
+            >
+              <span className="text-[17px] text-white">kore</span>
+              <span className="mb-[3px] ml-[3px] h-[3px] w-[11px] rounded-[1px]" style={{ background: '#F5A623' }} />
+            </span>
+          </a>
         </div>
       </div>
     </footer>
