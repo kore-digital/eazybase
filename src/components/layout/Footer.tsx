@@ -184,7 +184,7 @@ export function Footer({ phone, whatsappNumber, email, tagline, awardLine, socia
 
       {/* Bottom bar — extra mobile padding clears the StickyMobileCTA bar */}
       <div className="border-t border-ink-800 bg-ink-950">
-        <div className="eb-container flex flex-col items-center gap-4 pt-5 pb-[calc(1.25rem_+_3.5rem_+_env(safe-area-inset-bottom))] text-center text-xs text-ink-400 sm:flex-row sm:justify-between md:pb-5">
+        <div className="eb-container flex flex-col items-center gap-3 pt-5 pb-[calc(1.25rem_+_3.5rem_+_env(safe-area-inset-bottom))] text-center text-xs text-ink-400 md:pb-5">
           <p>
             © {year} {SITE.legalName}. All rights reserved.
           </p>
