@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Archivo_Black, Montserrat, Open_Sans } from 'next/font/google'
+import { Montserrat, Open_Sans } from 'next/font/google'
 import React from 'react'
 
 import { PostHogInit } from '@/components/analytics/PostHogInit'
@@ -25,14 +25,6 @@ const openSans = Open_Sans({
   subsets: ['latin'],
   variable: '--font-open-sans',
   weight: ['400', '500', '600', '700'],
-})
-
-// Kore Digital wordmark face (footer credit only).
-const archivoBlack = Archivo_Black({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-archivo-black',
-  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -74,7 +66,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   const [settings, navigation] = await Promise.all([getSiteSettings(), getNavigation()])
 
   return (
-    <html lang="en-GB" className={`${montserrat.variable} ${openSans.variable} ${archivoBlack.variable}`}>
+    <html lang="en-GB" className={`${montserrat.variable} ${openSans.variable}`}>
       <body>
         {/* Site-wide Lenis smooth scrolling (no-op under prefers-reduced-motion) */}
         <SmoothScroll />

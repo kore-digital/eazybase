@@ -201,9 +201,9 @@ export function Footer({ phone, whatsappNumber, email, tagline, awardLine, socia
             <span
               aria-hidden="true"
               className="inline-flex items-end leading-none"
-              style={{ fontFamily: 'var(--font-archivo-black), system-ui, sans-serif' }}
+              style={{ fontFamily: '"Archivo Black", "Arial Black", Impact, system-ui, sans-serif', fontWeight: 900 }}
             >
-              <span className="text-[17px] text-white">kore</span>
+              <span className="text-[17px] tracking-[-0.01em] text-white">kore</span>
               <span className="mb-[3px] ml-[3px] h-[3px] w-[11px] rounded-[1px]" style={{ background: '#F5A623' }} />
             </span>
           </a>
