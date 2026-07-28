@@ -36,6 +36,12 @@ const nextConfig: NextConfig = {
     ]
   },
   images: {
+    // Custom loader: CMS media (`/api/media/file/**`) is served directly by
+    // Payload rather than through Vercel's optimizer, whose internal self-fetch
+    // of that route 404s. Static /public assets still get optimized. See
+    // src/lib/image-loader.ts.
+    loader: 'custom',
+    loaderFile: './src/lib/image-loader.ts',
     localPatterns: [
       {
         pathname: '/api/media/file/**',
