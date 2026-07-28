@@ -36,23 +36,13 @@ const nextConfig: NextConfig = {
     ]
   },
   images: {
-    // Custom loader: CMS media (`/api/media/file/**`) is served directly by
-    // Payload rather than through Vercel's optimizer, whose internal self-fetch
-    // of that route 404s. Static /public assets still get optimized. See
-    // src/lib/image-loader.ts.
-    loader: 'custom',
-    loaderFile: './src/lib/image-loader.ts',
-    localPatterns: [
-      {
-        pathname: '/api/media/file/**',
-      },
-      // Static assets in /public (logo etc.) — once localPatterns is defined,
-      // every local next/image src must match a pattern or the optimizer 400s.
-      {
-        pathname: '/**',
-        search: '',
-      },
-    ],
+    // Optimization disabled. CMS media is served by Payload's own route
+    // (`/api/media/file/**`), which streams from Supabase Storage; on Vercel the
+    // image optimizer's internal self-fetch of that route 404s, so every CMS
+    // photo silently failed to render. Payload already generates thumb/card/hero
+    // variants (and the /public assets are small, <400KB each), so serving
+    // originals directly costs little and renders reliably.
+    unoptimized: true,
   },
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {
