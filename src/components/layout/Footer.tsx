@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { SITE } from '@/lib/site'
+import { AREAS, SITE } from '@/lib/site'
 import { formatPhone, telHref, waHref } from '@/lib/format'
 import type { Navigation, SiteSetting } from '@/payload-types'
 
@@ -33,6 +33,8 @@ type FooterProps = {
 
 export function Footer({ phone, whatsappNumber, email, tagline, awardLine, socials, navItems }: FooterProps = {}) {
   const year = new Date().getFullYear()
+  const towns = AREAS.filter((a) => !a.hub)
+  const hubs = AREAS.filter((a) => a.hub)
 
   const phoneNumber = phone?.trim() || SITE.phone
   const waNumber = whatsappNumber?.trim() || SITE.whatsappNumber
@@ -98,21 +100,39 @@ export function Footer({ phone, whatsappNumber, email, tagline, awardLine, socia
           </ul>
         </nav>
 
-        {/* Areas — nationwide */}
+        {/* Areas — two columns of towns */}
         <nav aria-label="Areas we cover">
           <h3 className="mb-4 font-display text-sm font-semibold tracking-[0.18em] text-white uppercase">
             Areas We Cover
           </h3>
-          <p className="font-display text-lg font-semibold text-white">Nationwide</p>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed">
-            Factory-built in {SITE.base} and installed at homes across the UK.
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-1">
+            {towns.map((area) => (
+              <li key={area.slug}>
+                <Link
+                  href={`/areas/${area.slug}`}
+                  className="inline-block py-1 text-sm transition-colors hover:text-brand-400"
+                >
+                  {area.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm">
+            {hubs.map((hub, i) => (
+              <span key={hub.slug}>
+                {i > 0 ? ' · ' : ''}
+                <Link
+                  href={`/areas/${hub.slug}`}
+                  className="inline-block py-1 font-semibold text-white transition-colors hover:text-brand-400"
+                >
+                  {hub.name}
+                </Link>
+              </span>
+            ))}
           </p>
-          <Link
-            href="/areas"
-            className="mt-3 inline-block py-1 text-sm font-semibold text-white transition-colors hover:text-brand-400"
-          >
-            View all areas &rarr;
-          </Link>
+          <p className="mt-3 text-sm">
+            We cover the whole UK. If your town isn&rsquo;t listed, we can still install nationwide.
+          </p>
         </nav>
 
         {/* Contact */}
